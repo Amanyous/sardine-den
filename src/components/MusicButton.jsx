@@ -194,6 +194,11 @@ export default function MusicButton({ tracks = [] }) {
                 max={duration || 0}
                 step="0.1"
                 value={Math.min(time, duration || 0)}
+                style={{
+                  '--range-progress': duration
+                    ? `${Math.min(100, (Math.min(time, duration) / duration) * 100)}%`
+                    : '0%',
+                }}
                 aria-label="播放进度"
                 onChange={seek}
               />
