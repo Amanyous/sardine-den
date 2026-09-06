@@ -1,0 +1,66 @@
+.hello-stroke {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-inline: 24px;
+}
+
+.hello-stroke__svg {
+  display: block;
+  width: min(80vw, 640px);
+  height: auto;
+  overflow: visible;
+}
+
+@media (max-width: 760px) {
+  .hello-stroke {
+    padding-inline: 8px;
+  }
+
+  .hello-stroke__svg {
+    width: 94vw;
+  }
+}
+
+.hello-stroke__path {
+  fill: none;
+  opacity: 0;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.hello-stroke__path--first {
+  animation:
+    hello-draw 0.9s cubic-bezier(0.42, 0, 0.58, 1) both,
+    hello-visible 0.3s ease-out 0.08s both;
+}
+
+.hello-stroke__path--second {
+  animation:
+    hello-draw 3.4s cubic-bezier(0.42, 0, 0.58, 1) 0.75s both,
+    hello-visible 0.32s ease-out 0.76s both;
+}
+
+@keyframes hello-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hello-visible {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hello-stroke__path {
+    animation: none;
+    opacity: 1;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
