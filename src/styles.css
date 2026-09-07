@@ -505,6 +505,7 @@ p {
   padding-top: 128px;
   padding-bottom: 150px;
   overflow-x: clip;
+  touch-action: pan-y;
 }
 
 .hero {

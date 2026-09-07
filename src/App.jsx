@@ -448,6 +448,102 @@ function useRoute() {
   return route;
 }
 
+function useSwipePages({ route }) {
+  const gestureRef = useRef(null);
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    const main = document.querySelector('.site-main');
+    if (!main) return undefined;
+
+    const start = (event) => {
+      if (event.touches.length !== 1) return;
+      const target = event.target.closest?.('.mobile-dock, .music-panel, .music-button, .theme-toggle');
+      if (target) {
+        gestureRef.current = null;
+        return;
+      }
+      gestureRef.current = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY,
+        locked: null,
+        swiped: false,
+      };
+    };
+
+    const move = (event) => {
+      const gesture = gestureRef.current;
+      if (!gesture || event.touches.length !== 1) return;
+      const dx = event.touches[0].clientX - gesture.x;
+      const dy = event.touches[0].clientY - gesture.y;
+
+      if (!gesture.locked && Math.abs(dx) > 8) {
+        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+          gesture.locked = 'horizontal';
+          if (event.cancelable) event.preventDefault();
+        } else if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+          gesture.locked = 'vertical';
+        }
+      }
+    };
+
+    const end = () => {
+      const gesture = gestureRef.current;
+      gestureRef.current = null;
+      if (!gesture || gesture.locked !== 'horizontal' || gesture.swiped) return;
+      gesture.swiped = true;
+
+      // move uses stored x/y; touchend has no reliable coordinates in some browsers
+      const order = navItems.map((item) => item.key);
+      const index = order.indexOf(route);
+      if (index < 0) return;
+      const nextIndex = gesture.direction === 'left' ? index + 1 : index - 1;
+      const next = order[nextIndex];
+      if (!next) return;
+      window.location.hash = `#/${next}`;
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 450);
+    };
+
+    const onTouchEnd = (event) => {
+      const gesture = gestureRef.current;
+      if (!gesture || gesture.locked !== 'horizontal') return;
+      const touch = event.changedTouches[0];
+      const dx = touch ? touch.clientX - gesture.x : 0;
+      if (Math.abs(dx) >= 64) gesture.direction = dx < 0 ? 'left' : 'right';
+      else gesture.direction = null;
+      end();
+    };
+
+    const onTouchCancel = () => {
+      gestureRef.current = null;
+    };
+
+    const onClickCapture = (event) => {
+      if (!suppressClickRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClickRef.current = false;
+    };
+
+    main.addEventListener('touchstart', start, { passive: true });
+    main.addEventListener('touchmove', move, { passive: false });
+    main.addEventListener('touchend', onTouchEnd);
+    main.addEventListener('touchcancel', onTouchCancel);
+    document.addEventListener('click', onClickCapture, true);
+
+    return () => {
+      main.removeEventListener('touchstart', start);
+      main.removeEventListener('touchmove', move);
+      main.removeEventListener('touchend', onTouchEnd);
+      main.removeEventListener('touchcancel', onTouchCancel);
+      document.removeEventListener('click', onClickCapture, true);
+    };
+  }, [route]);
+}
+
 function ThemeButton({ theme, onCycle, title }) {
   const meta = THEME_META[theme];
   const Icon = meta.icon;
@@ -747,6 +843,7 @@ function Page({ route, ready }) {
 
 export default function App() {
   const route = useRoute();
+  useSwipePages({ route });
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
   const compactNav = useCompactNav();
