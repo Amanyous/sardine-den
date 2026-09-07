@@ -18,8 +18,18 @@ import MusicButton from './components/MusicButton.jsx';
 import HelloStroke from './components/HelloStroke.jsx';
 import StrokeText from './components/reactbits/StrokeText.jsx';
 import DockLens from './components/DockLens.jsx';
+import UpdateBook from './components/UpdateBook.jsx';
 import ScrollHint from './components/ScrollHint.jsx';
-import { devices, favorites, models, playerTrack, site, stats, themePalettes } from './data/site.js';
+import {
+  changelog,
+  devices,
+  favorites,
+  models,
+  playerTrack,
+  site,
+  stats,
+  themePalettes,
+} from './data/site.js';
 
 const LiquidEther = lazy(() => import('./components/reactbits/LiquidEther.jsx'));
 
@@ -726,6 +736,16 @@ function AboutPage() {
             <p>模型与 API 使用、设备清单和统计，之后都会在这里慢慢补全。</p>
           </div>
         </LiquidSurface>
+
+        <section className="about-updates" aria-labelledby="updates-title">
+          <div className="about-updates__heading">
+            <h2 id="updates-title">更新日志</h2>
+            <span>记录每次生长</span>
+          </div>
+          <LiquidSurface className="update-book-card" cornerRadius={28}>
+            <UpdateBook entries={changelog} />
+          </LiquidSurface>
+        </section>
       </section>
     </>
   );

@@ -1,0 +1,37 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "icons/icon128.png",
+         "16": "icons/icon16.png",
+         "32": "icons/icon32.png",
+         "48": "icons/icon48.png"
+      },
+      "default_popup": "popup.html",
+      "default_title": "Quick add bookmark"
+   },
+   "background": {
+      "service_worker": "bg.js"
+   },
+   "chrome_url_overrides": {
+      "newtab": "newtab.html"
+   },
+   "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'self';"
+   },
+   "description": "Glass-style new tab dashboard. Search uses Chrome Search API and respects the user's default search engine.",
+   "host_permissions": [ "https://gntd.us/*", "https://api.gntd.us/*" ],
+   "icons": {
+      "128": "icons/icon128.png",
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk1SQjzGoNVZBt1U/kSYeBxt13rMD4s8toz02iocHvFrZmsmeUW0s1I+K2G51WIZIxhjlj2MF3WlZVFcn8M16NV8jXi6MBd+6ELnnBalI1MVfYgTEChxkPA5c2wr1vItRLXQ5wEEMzJlS0XQuECJnxETA4/ZIvqXEGDVQEr7eIXOioqYXKfyaWg1/uyt9n0TWgUFou2rYArvw6mLGUGaXKjQde4mSHLG5tMQApodA0nlYQiVoHe6ZA2hEmyWCEYvxcsK7m0EdQUjdDKZHFrR1Wcw6QxAxqpbMOUrjYiXK7v3uaCLkWqsz7iSQzfPhQ8DhX9yvSaDK5UmE6+vctTWUjQIDAQAB",
+   "manifest_version": 3,
+   "name": "GNTD: Glass New Tab Dashboard",
+   "optional_host_permissions": [ "https://*.youtube.com/*", "https://youtu.be/*", "https://open.spotify.com/*", "https://*.soundcloud.com/*", "https://on.soundcloud.com/*" ],
+   "optional_permissions": [ "bookmarks", "notifications", "history", "unlimitedStorage", "scripting" ],
+   "permissions": [ "storage", "contextMenus", "tabs", "search", "identity" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.2.12"
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Add Bookmark</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="popup">
+    <h1 class="title">Add Current Site</h1>
+    <p class="sub" id="tabInfo">Loading tab...</p>
+
+    <label class="label" for="groupSelect">Folder</label>
+    <select id="groupSelect" class="select"></select>
+
+    <div class="create-group">
+      <label class="label" for="newGroupInput">New Folder</label>
+      <div class="create-group-row">
+        <input id="newGroupInput" class="input" type="text" placeholder="Create a new folder" maxlength="48" autocomplete="off" />
+        <button id="createGroupBtn" class="btn btn-secondary" type="button">Create</button>
+      </div>
+    </div>
+
+    <button id="addBtn" class="btn" type="button">Add to Folder</button>
+    <p id="status" class="status" aria-live="polite"></p>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

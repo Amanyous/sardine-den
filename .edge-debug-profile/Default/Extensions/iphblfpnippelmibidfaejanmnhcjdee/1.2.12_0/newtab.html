@@ -1,0 +1,1532 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>New Tab</title>
+  <link rel="stylesheet" href="newtab.css" />
+</head>
+
+<body class="light nt-booting">
+  <div id="startupShell" aria-hidden="true">
+    <div class="startup-shell-spinner"></div>
+  </div>
+
+<div id="bgImage"></div>
+<video id="bgVideo" muted loop autoplay playsinline></video>
+
+<aside class="time-pip" id="timePipWidget" aria-live="polite" hidden>
+  <div class="time-pip-phase" id="timePipPhase">Focus session</div>
+  <div class="time-pip-time" id="timePipTime">25:00</div>
+  <div class="time-pip-meta" id="timePipMeta">Running</div>
+</aside>
+
+<div class="app" id="app">
+
+
+<!-- загрузка фона -->
+<input type="file" id="bgUpload" accept="image/*" hidden />
+
+<!-- BG PICKER POPOVER -->
+<div class="bg-popover" id="bgPopover" hidden>
+  <div class="bg-menu-title" data-i18n="background.title">Background settings</div>
+
+  <button type="button" class="bgp-btn" id="bgPickPhoto" data-i18n="background.uploadPhoto">Upload photo</button>
+  <button type="button" class="bgp-btn" id="bgPickVideo" data-i18n="background.uploadVideo">Upload video</button>
+
+  <div class="bgp-row">
+    <input id="bgUrlInput" class="bgp-input" placeholder="https://... (jpg/png/mp4)" data-i18n="background.urlPlaceholder" />
+    <button type="button" class="bgp-btn" id="bgUrlApply" data-i18n="background.apply">Apply</button>
+  </div>
+
+  
+
+  <button type="button" class="bgp-btn bgp-ghost" id="bgResetDefault" data-i18n="background.reset">Reset to default</button>
+</div>
+<!-- BG FOCUS EDITOR (crop-like position picker) -->
+<div class="bg-focus" id="bgFocus" hidden>
+  <div class="bg-focus-backdrop" id="bgFocusBackdrop"></div>
+
+  <div class="bg-focus-card" role="dialog" aria-modal="true">
+    <div class="bg-focus-head">
+      <div class="bg-focus-title" data-i18n="background.chooseArea">Choose visible area</div>
+      <button class="bg-focus-x" id="bgFocusClose" type="button">✕</button>
+    </div>
+
+    <div class="bg-focus-preview" id="bgFocusPreview">
+      <img id="bgFocusImg" alt="" hidden />
+      <video id="bgFocusVid" hidden autoplay muted loop playsinline></video>
+      <div class="bg-focus-hint">Drag to reposition</div>
+    </div>
+
+    <div class="bg-focus-controls">
+      <button class="bg-focus-btn" id="bgFocusBlurToggle" type="button">Blur: Off</button>
+      <button class="bg-focus-btn" id="bgFocusSoundToggle" type="button">Sound: Off</button>
+      <div class="bg-focus-brightness" id="bgFocusBlurWrap" hidden>
+        <span id="bgFocusBlurLabel">Blur</span>
+        <input id="bgFocusBlurInput" type="range" min="1" max="40" step="1" value="12" />
+        <span id="bgFocusBlurValue">12px</span>
+      </div>
+      <div class="bg-focus-brightness" id="bgFocusBrightnessWrap">
+        <span id="bgFocusBrightnessLabel">Brightness</span>
+        <input id="bgFocusBrightness" type="range" min="50" max="150" step="1" value="100" />
+        <span id="bgFocusBrightnessValue">100%</span>
+      </div>
+    </div>
+
+    <div class="bg-focus-clip" id="bgFocusClip" hidden>
+      <div class="bg-focus-clip-head">
+        <span id="bgFocusClipLabel">Video fragment</span>
+        <span id="bgFocusClipRange">0:00 – 0:25</span>
+      </div>
+
+      <div class="bg-focus-clip-track" id="bgFocusClipTrack">
+        <div class="bg-focus-clip-thumbs" id="bgFocusClipThumbs"></div>
+        <input class="bg-focus-clip-slider is-start" id="bgFocusClipStart" type="range" min="0" max="0" step="0.1" value="0" />
+        <input class="bg-focus-clip-slider is-end" id="bgFocusClipEnd" type="range" min="0" max="0" step="0.1" value="0" />
+        <div class="bg-focus-clip-handle bg-focus-clip-handle-start" id="bgFocusClipHandleStart"></div>
+        <div class="bg-focus-clip-handle bg-focus-clip-handle-end" id="bgFocusClipHandleEnd"></div>
+      </div>
+
+      <div class="bg-focus-clip-values" hidden>
+        <span id="bgFocusClipStartLabel">Start</span>
+        <span id="bgFocusClipStartValue">0:00</span>
+        <span id="bgFocusClipEndLabel">End</span>
+        <span id="bgFocusClipEndValue">0:25</span>
+      </div>
+
+      <div class="bg-focus-clip-scale">
+        <div class="bg-focus-clip-dots" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="bg-focus-clip-time-row">
+          <span id="bgFocusClipTickStart">0с.</span>
+          <span id="bgFocusClipTickMid">15с.</span>
+          <span id="bgFocusClipTickEnd">30с.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-focus-actions">
+      <button class="bg-focus-btn ghost" id="bgFocusCenter" type="button" data-i18n="background.center">Center</button>
+      <button class="bg-focus-btn bg-rot"id="bgRotateLeft" type="button">↺</button>
+<button class="bg-focus-btn bg-rot" id="bgRotateRight" type="button">↻</button>
+
+
+      <div class="bg-focus-spacer"></div>
+      <button class="bg-focus-btn ghost" id="bgFocusCancel" type="button" data-i18n="background.cancel">Cancel</button>
+      <button class="bg-focus-btn primary" id="bgFocusApply" type="button" data-i18n="background.apply">Apply</button>
+    </div>
+  </div>
+</div>
+<div id="onboardingCard" class="onboarding" hidden>
+  <div class="onboarding__header">
+    <div class="onboarding__title" id="onboardingTitle">Watch a video to get started</div>
+    <button id="onboardingClose" class="onboarding__close" aria-label="Close">✕</button>
+  </div>
+
+  <a class="onboarding__content" id="onboardingLink" href="#" target="_blank" rel="noopener noreferrer">
+    <div class="onboarding__thumb">
+      <div class="onboarding__play">▶</div>
+    </div>
+    <div class="onboarding__hint" id="onboardingHint">Click to open the tutorial</div>
+  </a>
+</div>
+
+<div class="workspace" id="workspace">
+
+  <!-- ВИДЖЕТЫ -->
+  <div class="widgets" id="widgets">
+    <!-- WIDGETS (правая "страница") -->
+<main class="dashboard">
+  <div class="dash-area" id="dashArea">
+    
+<!-- SEARCH (PINNED TOP BAR) -->
+<section class="card widget search-widget" id="searchCard" data-widget="search" data-title="Search">
+  <div class="welcome-bar" id="welcomeBar">
+    <span class="welcome-text" data-i18n="widgets.welcome">Welcome,</span>
+    <button class="welcome-name" id="welcomeName" type="button">Friend</button>
+    <input class="welcome-input" id="welcomeInput" type="text"
+      placeholder="Enter your nickname" maxlength="24" autocomplete="off" data-i18n="widgets.namePlaceholder" />
+  </div>
+
+  <form id="searchForm" autocomplete="off">
+    <input id="searchInput" type="text"
+      placeholder="Search or type a URL" autocomplete="off" data-i18n="widgets.searchPlaceholder" list="searchSuggestList" />
+    <datalist id="searchSuggestList"></datalist>
+  </form>
+  
+  <!-- кнопка переключения размера поиска (видна только в режиме customize) -->
+  <button class="search-size-toggle widget-control-btn" id="btnSearchSizeToggle" type="button" title="Toggle compact mode" hidden>⤢</button>
+</section>
+
+
+
+
+
+    <!-- WIDGETS IN ONE CANVAS -->
+    <section class="card todo widget" id="todoCard" data-widget="todo">
+      <h2 data-i18n="widgets.todo">To do</h2>
+      <div class="todo-projects" id="todoProjects" aria-label="Todo projects">
+        <div class="todo-project-list" id="todoProjectList"></div>
+        <button class="todo-project-add" id="todoProjectAddBtn" type="button" aria-label="Add project">+</button>
+      </div>
+      <div class="todo-input-row" id="todoComposer" aria-hidden="true">
+        <input id="todoInput" placeholder="Add task..." data-i18n="widgets.todoPlaceholder" />
+        <button id="todoDateBtn" type="button" aria-label="Pick task date">Date</button>
+        <input id="todoDate" type="date" lang="en-GB" aria-label="Task date" />
+        <button id="todoAddBtn" type="button">Add</button>
+      </div>
+      <ul id="todoList"></ul>
+      <button class="todo-add-toggle" id="todoQuickAddBtn" type="button" aria-label="Add task" aria-expanded="false" aria-controls="todoComposer">+</button>
+    </section>
+
+<section class="card weather widget" id="weather" data-widget="weather">
+  <div class="weather-row">
+    <div class="weather-left">
+      <div class="weather-city" id="weatherCity">—</div>
+      <div class="weather-sub" id="weatherSub" data-i18n="widgets.enableLocation">Click Enable location to show local weather.</div>
+    </div>
+
+    <div class="weather-right">
+      <div class="weather-emoji" id="weatherEmoji">🌡️</div>
+      <div class="weather-temp" id="weatherTemp">--°C</div>
+    </div>
+   
+  </div>
+
+  <div class="weather-forecast" id="weatherForecast" aria-label="Weather forecast">
+    <div class="weather-forecast-card" id="weatherForecastTomorrow">
+      <div class="weather-forecast-day">Tomorrow</div>
+      <div class="weather-forecast-emoji">--</div>
+      <div class="weather-forecast-temp">--°C</div>
+    </div>
+    <div class="weather-forecast-card" id="weatherForecastAfterTomorrow">
+      <div class="weather-forecast-day">Next</div>
+      <div class="weather-forecast-emoji">--</div>
+      <div class="weather-forecast-temp">--°C</div>
+    </div>
+  </div>
+
+  <div class="weather-manual">
+    <input class="weather-city-input" id="weatherCityInput" type="text" placeholder="Enter city" data-i18n="widgets.cityPlaceholder" />
+    <button class="weather-city-apply" id="weatherCityApply" type="button" data-i18n="widgets.cityApply">Set</button>
+    <button class="weather-geo" id="btnEnableWeatherGeo" type="button" title="Use my location">📍</button>
+  </div>
+</section>
+
+<section class="card pomodoro widget" id="pomodoroCard" data-widget="pomodoro" data-title="Pomodoro">
+  <div class="pomodoro-head">
+    <h2 data-i18n="widgets.pomodoro">Pomodoro</h2>
+    <div class="pomodoro-head-actions">
+      <span class="pomodoro-badge" id="pomodoroModeBadge">Focus</span>
+      <button class="pomodoro-settings-toggle" id="pomodoroSettingsToggle" type="button" aria-label="Timer settings" title="Timer settings">⚙</button>
+    </div>
+  </div>
+
+  <div class="pomodoro-time" id="pomodoroTime">25:00</div>
+
+  <div class="pomodoro-progress" aria-hidden="true">
+    <span id="pomodoroProgressBar"></span>
+  </div>
+
+  <div class="pomodoro-status" id="pomodoroStatus">Ready to focus</div>
+
+  <div class="pomodoro-meta">
+    <span id="pomodoroSessionCount">Sessions: 0</span>
+    <span id="pomodoroDurations">25 / 5 min</span>
+  </div>
+
+  <div class="pomodoro-actions">
+    <button class="pomodoro-btn primary" id="pomodoroStartPause" type="button">Start</button>
+    <button class="pomodoro-btn" id="pomodoroReset" type="button">Reset</button>
+    <button class="pomodoro-btn ghost" id="pomodoroSkip" type="button">Skip</button>
+  </div>
+
+  <div class="pomodoro-settings-panel" id="pomodoroSettingsPanel" hidden>
+    <div class="pomodoro-settings-head">
+      <strong id="pomodoroSettingsTitle">Timer settings</strong>
+      <button class="pomodoro-settings-close" id="pomodoroSettingsClose" type="button">Close</button>
+    </div>
+
+    <div class="pomodoro-settings">
+      <label class="pomodoro-setting" for="pomodoroWorkMinutes">
+        <span id="pomodoroWorkLabel">Focus</span>
+        <input class="pomodoro-setting-input" id="pomodoroWorkMinutes" type="number" min="1" max="120" step="1" value="25" />
+      </label>
+      <label class="pomodoro-setting" for="pomodoroBreakMinutes">
+        <span id="pomodoroBreakLabel">Break</span>
+        <input class="pomodoro-setting-input" id="pomodoroBreakMinutes" type="number" min="1" max="120" step="1" value="5" />
+      </label>
+    </div>
+
+    <div class="pomodoro-alerts">
+      <label class="pomodoro-toggle" for="pomodoroSoundEnabled">
+        <input id="pomodoroSoundEnabled" type="checkbox" checked />
+        <span id="pomodoroSoundLabel">Sound</span>
+      </label>
+      <label class="pomodoro-toggle" for="pomodoroNotifyEnabled">
+        <input id="pomodoroNotifyEnabled" type="checkbox" checked />
+        <span id="pomodoroNotifyLabel">Notify</span>
+      </label>
+    </div>
+  </div>
+</section>
+<!-- MUSIC -->
+<section class="card audio widget hidden" id="audioCard" data-widget="audio">
+  <div class="audio-topbar">
+    <div class="audio-header">
+      <h2 data-i18n="widgets.music">Music</h2>
+      <div class="audio-sub" id="audioStatus" data-i18n="widgets.musicHint">Using last active tab</div>
+    </div>
+    <button class="audio-use-tab" id="audioUseTab" type="button" title="Connect to a tab playing music or video" aria-label="Connect to a tab playing music or video">Connect</button>
+  </div>
+
+  <div class="audio-embed" id="audioEmbed">
+    <div class="audio-empty" id="audioEmpty" data-i18n="widgets.musicEmpty">No supported tab found.</div>
+  </div>
+
+  <div class="audio-controls" id="audioControls" aria-label="Music controls">
+    <button class="audio-control-btn audio-control-btn--skip audio-control-btn--prev" id="audioPrev" type="button" title="Previous track" aria-label="Previous track"></button>
+    <button class="audio-control-btn audio-control-btn--primary" id="audioPlayPause" type="button" title="Play or pause" aria-label="Play or pause"></button>
+    <button class="audio-control-btn audio-control-btn--skip audio-control-btn--next" id="audioNext" type="button" title="Next track" aria-label="Next track"></button>
+  </div>
+</section>
+<!-- NOTES -->
+<section class="card notes widget" id="noteCard" data-widget="notes">
+  <div class="notes-head">
+    <div class="notes-title" data-i18n="widgets.notes">Notes</div>
+    <button class="notes-add" id="notesAdd" type="button" title="Add note">＋</button>
+  </div>
+
+  <div class="notes-list" id="notesList"></div>
+</section>
+
+<div class="notes-modal" id="notesModal" hidden>
+  <div class="notes-modal-backdrop" data-close="1"></div>
+
+  <div class="notes-modal-window" role="dialog" aria-modal="true">
+    <!-- LEFT SIDEBAR: list of notes -->
+    <div class="notes-sidebar" id="notesSidebar">
+      <div class="notes-sidebar-header">
+        <span class="notes-sidebar-title" data-i18n="widgets.notes">Notes</span>
+        <div class="notes-sidebar-actions">
+          <button class="notes-sidebar-add notes-sidebar-folder-add" id="notesFolderAdd" type="button" title="New folder" aria-label="New folder">
+            <img class="notes-sidebar-folder-icon" src="assets/folder-10180087.png" alt="" aria-hidden="true" />
+          </button>
+          <button class="notes-sidebar-add" id="notesSidebarAdd" type="button" title="New note">＋</button>
+        </div>
+      </div>
+      <div class="notes-folder-create" id="notesFolderCreate" hidden>
+        <input class="notes-folder-input" id="notesFolderInput" type="text" placeholder="Folder name" maxlength="48" />
+        <div class="notes-folder-create-actions">
+          <button class="notes-folder-create-btn primary" id="notesFolderSave" type="button">Save</button>
+          <button class="notes-folder-create-btn" id="notesFolderCancel" type="button">Cancel</button>
+        </div>
+      </div>
+      <div class="notes-folder-list" id="notesFolderList"></div>
+      <div class="notes-sidebar-list" id="notesSidebarList"></div>
+    </div>
+
+    <!-- RIGHT EDITOR AREA -->
+    <div class="notes-editor-area">
+    <div class="notes-modal-top">
+      <input class="notes-modal-title" id="notesModalTitle" placeholder="Untitled" data-i18n="widgets.noteTitle" />
+      <div class="notes-modal-actions">
+        <select class="notes-folder-select" id="notesFolderSelect" title="Folder" aria-label="Folder"></select>
+        <button class="notes-modal-btn" id="notesModalDelete" type="button" title="Delete" data-i18n="widgets.delete">Delete</button>
+        <button class="notes-modal-btn" id="notesModalClose" type="button" title="Close" data-i18n="widgets.close">Close</button>
+      </div>
+    </div>
+
+    <div class="notes-toolbar" id="notesToolbar" aria-label="Formatting toolbar">
+      <select class="notes-toolbar-select" id="notesFormatBlock" title="Text style">
+        <option value="p">Text</option>
+        <option value="h1">Heading 1</option>
+        <option value="h2">Heading 2</option>
+        <option value="h3">Heading 3</option>
+      </select>
+      <button class="notes-tool-btn" type="button" data-cmd="bold" title="Bold">B</button>
+      <button class="notes-tool-btn" type="button" data-cmd="italic" title="Italic">I</button>
+      <button class="notes-tool-btn" type="button" data-cmd="strikeThrough" title="Strikethrough">S</button>
+      <button class="notes-tool-btn" type="button" data-cmd="insertUnorderedList" title="Bulleted list"><img class="notes-tool-icon" src="assets/list.png" alt="Bulleted list" /></button>
+      <button class="notes-tool-btn" type="button" data-cmd="insertOrderedList" title="Numbered list"><img class="notes-tool-icon" src="assets/list (1).png" alt="Numbered list" /></button>
+      <button class="notes-tool-btn" type="button" data-cmd="checklist" title="Checklist"><img class="notes-tool-icon" src="assets/checked.png" alt="Checklist" /></button>
+      <button class="notes-tool-btn" type="button" data-cmd="link" title="Insert link">🔗</button>
+      <button class="notes-tool-btn" type="button" data-cmd="noteLink" title="Link to note">N</button>
+      <button class="notes-tool-btn" type="button" data-cmd="bookmarkLink" title="Insert bookmark">★</button>
+      <button class="notes-tool-btn" type="button" data-cmd="image" title="Insert image"><img class="notes-tool-icon" src="assets/image.png" alt="Insert image" /></button>
+      <button class="notes-tool-btn" type="button" data-cmd="table" title="Insert table"><img class="notes-tool-icon" src="assets/table.png" alt="Insert table" /></button>
+      <button class="notes-tool-btn" type="button" data-cmd="blockquote" title="Quote">❝</button>
+      <button class="notes-tool-btn" type="button" data-cmd="insertHorizontalRule" title="Divider">—</button>
+    </div>
+
+    <div class="notes-modal-text" id="notesModalText" contenteditable="true" data-placeholder="Write something..." data-i18n="widgets.noteText"></div>
+    <input id="notesImageInput" type="file" accept="image/*" hidden />
+
+    <div class="notes-modal-bottom">
+      <div class="notes-modal-hint" id="notesModalHint"></div>
+      <button class="notes-modal-btn primary" id="notesModalSave" type="button" data-i18n="widgets.save">Save</button>
+    </div>
+    </div><!-- /notes-editor-area -->
+  </div>
+</div>
+
+
+    <section class="card map widget" id="mapCard" data-widget="map" hidden>
+    
+      <div class="map-head">
+        <div>
+          <h2 class="map-title" data-i18n="widgets.map">Map</h2>
+          <div class="map-sub" id="mapStatus" data-i18n="widgets.mapStatusEnable">Tap 📍 to enable your map.</div>
+        </div>
+     
+        <button class="map-btn" id="btnEnableMapGeo" title="Use my location" data-i18n-title="widgets.useMyLocation">📍</button>
+      </div>
+
+      <div class="map-frame">
+        <iframe id="mapIframe" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+
+      <div class="map-foot">
+        <span id="mapCoords">—</span>
+        <a id="mapOpen" target="_blank" rel="noopener noreferrer" class="map-open" data-i18n="widgets.mapOpen">Open</a>
+      </div>
+    </section>
+<!-- FAVORITES (3) -->
+<section class="card fav widget" id="favCard" data-widget="favorites" data-title="Favorites">
+  <h2 data-i18n="widgets.favorites">Favorites</h2>
+  <button class="fav-layout-toggle widget-size-toggle" id="btnFavLayoutToggle" type="button" title="Toggle wide view" hidden>⤢</button>
+  <div class="fav-slots" id="favSlots"></div>
+</section>
+
+    <section class="card date-card widget" id="dateCard" data-widget="date">
+      <div class="date-mini">
+        <div class="date-weekday" id="dateWeekday">THURSDAY</div>
+        <div class="date-day" id="dateDay">25</div>
+        <div class="date-month" id="dateMonth">DEC</div>
+        <div class="date-today-todos" id="dateTodayTodos" aria-live="polite">
+          <div class="date-today-todos-title" id="dateTodayTodosTitle">Today</div>
+          <ul class="date-today-todos-list" id="dateTodayTodosList"></ul>
+        </div>
+      </div>
+      <div class="date-cal">
+        <div class="cal-head">
+          <button class="cal-nav" id="calPrev" type="button">◀</button>
+          <div class="cal-title" id="calTitle">January 2026</div>
+          <button class="cal-nav" id="calNext" type="button">▶</button>
+        </div>
+        <div class="cal-weekdays">
+          <div>Mo</div>
+          <div>Tu</div>
+          <div>We</div>
+          <div>Th</div>
+          <div>Fr</div>
+          <div>Sa</div>
+          <div>Su</div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <button class="date-size-toggle" id="btnDateSizeToggle" type="button" title="Toggle large view" data-i18n-title="widgets.date" hidden>⤢</button>
+    </section>
+
+    <!-- ANALOG CLOCK (large, same size as date widget) -->
+    <!--
+    <section class="card date-card analog widget" id="analogClockCard" data-widget="analog">
+      <svg id="analogClockSvg" viewBox="-50 -50 100 100" preserveAspectRatio="xMidYMid meet" aria-label="Analog clock">
+        <circle r="48" class="analog-face" fill="none" />
+        <g id="analogTicks"></g>
+        <line id="hourHand" class="hand hour" x1="0" y1="0" x2="0" y2="-26" />
+        <line id="minuteHand" class="hand minute" x1="0" y1="0" x2="0" y2="-36" />
+        <line id="secondHand" class="hand second" x1="0" y1="6" x2="0" y2="-40" />
+        <circle r="2" class="analog-center" />
+      </svg>
+    </section>
+    -->
+
+    <section class="card clock widget" id="clockCard" data-widget="clock">
+      <!-- ЦИФРОВОЙ РЕЖИМ -->
+      <div class="clock-digital">
+        <div class="clock-time" id="clockTime">20:36:50</div>
+        <div class="clock-date" id="clockDate">Thursday, December 25, 2025</div>
+      </div>
+
+      <!-- АНАЛОГОВЫЙ РЕЖИМ (SVG) -->
+      <div class="clock-analog">
+        <svg id="analogClockSvg" viewBox="-50 -50 100 100" preserveAspectRatio="xMidYMid meet" aria-label="Analog clock">
+          <circle r="48" class="analog-face" fill="none" />
+          <g id="analogTicks"></g>
+          <line id="hourHand" class="hand hour" x1="0" y1="0" x2="0" y2="-28" />
+          <line id="minuteHand" class="hand minute" x1="0" y1="0" x2="0" y2="-38" />
+          <line id="secondHand" class="hand second" x1="0" y1="0" x2="0" y2="-42" />
+          <circle r="3" class="analog-center" />
+        </svg>
+      </div>
+
+      <!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ (только в Customize mode) -->
+      <button class="clock-minutes-toggle" type="button" title="Toggle HH:MM format">:59</button>
+      <button class="clock-mode-toggle widget-control-btn" id="btnClockModeToggle" type="button" title="Toggle analog/digital" hidden>⤢</button>
+    </section>
+
+<!-- RECENTLY VISITED SITES -->
+    <section class="card recently-visited widget" id="recentlyVisitedCard" data-widget="recently-visited">
+      <div class="recently-visited-head">
+        <h2 data-i18n="widgets.recentlyVisited">Recently Visited</h2>
+        <button class="recently-visited-refresh" id="recentlyVisitedRefresh" type="button" title="Refresh" aria-label="Refresh recently visited sites">⟲</button>
+      </div>
+      <div class="recently-visited-list" id="recentlyVisitedList">
+        <div class="recently-visited-empty" data-i18n="widgets.recentlyVisitedEmpty">No recently visited sites</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+  </div>
+
+<!-- CUSTOMIZE DRAWER (modal popup) - TWO COLUMN LAYOUT -->
+<aside class="layout-panel" id="layoutPanel" data-open="0">
+  <div class="layout-container">
+    <!-- LEFT COLUMN: MENU -->
+    <div class="layout-sidebar">
+      <div class="layout-sidebar-head">
+        <div class="layout-title" data-i18n="customize.title">Customize</div>
+      </div>
+      <div class="layout-menu" id="layoutMenu"></div>
+    </div>
+
+      <!-- RIGHT COLUMN: CONTENT -->
+    <div class="layout-content">
+      <div class="layout-content-header">
+        <div class="layout-search-wrap">
+          <span class="layout-search-icon" aria-hidden="true">⌕</span>
+          <input
+            id="layoutSettingsSearch"
+            class="layout-search-input"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Search settings"
+            data-i18n="customize.searchSettings"
+            aria-label="Search settings"
+          />
+        </div>
+        <select id="languageSelector" class="language-selector" title="Language" data-i18n-title="customize.language">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+          <option value="uk">Українська</option>
+          <option value="de">Deutsch</option>
+          <option value="tr">Türkçe</option>
+          <option value="az">Azərbaycan</option>
+          <option value="kk">Қазақша</option>
+          <option value="uz">O'zbekcha</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="pt">Português</option>
+          <option value="zh_CN">简体中文</option>
+          <option value="zh_TW">繁體中文</option>
+          <option value="ja">日本語</option>
+        </select>
+      </div>
+
+      <!-- CONTENT TABS -->
+      <div class="layout-content-body">
+        <!-- WIDGETS TAB -->
+        <div class="layout-tab" id="layoutTabWidgets" data-tab="widgets">
+          <div class="layout-actions-group">
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionAddPhotos">Add photos widget</div>
+              <button id="addPhotosBtn" class="layout-btn" data-i18n="customize.addPhotos">+ Photos</button>
+            </div>
+
+            <div class="layout-action-row layout-action-row-folder">
+              <div class="layout-action-desc" data-i18n="customize.actionAddFolder">Add bookmark folder</div>
+              <div class="layout-action-controls">
+                <input id="layoutFolderName" class="layout-input" type="text" placeholder="Folder name" maxlength="48" data-i18n="customize.folderNamePlaceholder" />
+                <button id="addFolderWidgetBtn" type="button" class="layout-btn" data-i18n="customize.addFolder">+ Folder</button>
+              </div>
+            </div>
+          </div>
+          <div class="layout-list" id="layoutList"></div>
+          <div class="layout-hidden" id="layoutHidden"></div>
+        </div>
+
+        <!-- ACTIONS TAB -->
+        <div class="layout-tab" id="layoutTabActions" data-tab="actions">
+          <div class="layout-actions-group">
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionWidgetTransparency">Widgets transparency</div>
+              <div class="layout-action-controls layout-opacity-control">
+                <input id="folderOpacitySlider" class="layout-opacity-slider" type="range" min="0" max="100" step="1" value="100" />
+                <span id="folderOpacityValue" class="layout-opacity-value">100%</span>
+              </div>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc">Buttons color</div>
+              <div class="layout-action-controls layout-button-color-control">
+                <input id="layoutButtonColorPicker" class="layout-color-picker" type="color" value="#4f46e5" aria-label="Buttons color" />
+                <button type="button" class="layout-btn" id="layoutButtonColorReset">Reset</button>
+              </div>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionSidebarMode">Switch sidebar mode</div>
+              <button type="button" class="layout-btn" id="sidebarModeToggle" data-i18n="customize.sidebarDynamic">Sidebar: Dynamic</button>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionTheme">Switch light/dark theme</div>
+              <button type="button" class="layout-btn" id="layoutThemeToggle" data-i18n="customize.toggleTheme">Toggle theme</button>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionWeatherUnit">Toggle temperature unit</div>
+              <button type="button" class="layout-btn" id="layoutWeatherUnitToggle">°C / °F</button>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionClockFormat">Toggle time format</div>
+              <button type="button" class="layout-btn" id="layoutClockFormatToggle">24h / 12h</button>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc">Todo date format</div>
+              <button type="button" class="layout-btn" id="layoutTodoDateFormatToggle">EU (DD.MM.YYYY)</button>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionOpenMode">Toggle link opening mode</div>
+              <button type="button" class="layout-btn" id="layoutOpenModeToggle" data-i18n="customize.openInSameTab">Open: Same tab</button>
+            </div>
+
+            <div class="layout-action-row" id="layoutCloudSyncRow">
+              <div class="layout-action-desc">Cloud Sync</div>
+              <div class="layout-action-controls layout-cloud-sync-controls">
+                <button type="button" class="layout-btn" id="layoutCloudSyncToggle">Enable</button>
+                <span class="layout-cloud-sync-status" id="layoutCloudSyncStatus">Sync paused</span>
+              </div>
+            </div>
+
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.actionWidgetSize">Widget size</div>
+              <div class="layout-size-btns">
+                <button type="button" class="layout-size-btn" id="widgetSizeSm">S</button>
+                <button type="button" class="layout-size-btn is-active" id="widgetSizeMd">M</button>
+                <button type="button" class="layout-size-btn" id="widgetSizeLg">L</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SECURITY TAB -->
+        <div class="layout-tab" id="layoutTabSecurity" data-tab="security">
+          <div class="security-intro" id="securityIntroText">Your privacy matters. GNTD only requests permissions when a feature needs them.</div>
+          <div class="security-feedback" id="securityFeedback" hidden></div>
+
+          <div class="security-card" id="securityCardHistory">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleHistory">Browser History</div>
+              <span class="security-status" id="securityStatusHistory">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescHistory">Used only for optional history-based shortcuts. Optional feature, stored locally.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleHistory">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardBookmarks">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleBookmarks">Bookmarks Access</div>
+              <span class="security-status" id="securityStatusBookmarks">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescBookmarks">Used only for importing your browser bookmarks into GNTD. Optional feature, stored locally.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleBookmarks">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardLocation">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleLocation">Location / Weather Access</div>
+              <span class="security-status" id="securityStatusLocation">Enabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescLocation">Used only for local weather and map shortcuts. Optional feature, stored locally on this device.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleLocation">Disable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardCloudSync">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleCloudSync">Cloud Sync</div>
+              <span class="security-status" id="securityStatusCloudSync">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescCloudSync">Used only to sync your dashboard settings across your devices. Optional feature.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleCloudSync">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardUnlimitedStorage">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleUnlimitedStorage">Unlimited Storage</div>
+              <span class="security-status" id="securityStatusUnlimitedStorage">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescUnlimitedStorage">Used only to keep larger local dashboard data, such as cached settings and media-backed customization, from being removed by browser storage limits.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleUnlimitedStorage">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardScripting">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleScripting">Scripting</div>
+              <span class="security-status" id="securityStatusScripting">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescScripting">Used only for optional media controls that need to run a small helper script in a supported media tab.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleScripting">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardMediaHosts">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleMediaHosts">Media Site Access</div>
+              <span class="security-status" id="securityStatusMediaHosts">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescMediaHosts">Used only for optional controls on YouTube, Spotify, and SoundCloud tabs.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleMediaHosts">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardNotifications">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleNotifications">Notifications</div>
+              <span class="security-status" id="securityStatusNotifications">Disabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescNotifications">Used only for optional timer alerts. Optional feature, stored locally.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleNotifications">Enable</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardTabs">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitleTabs">Tabs Access</div>
+              <span class="security-status is-required" id="securityStatusTabs">Enabled</span>
+            </div>
+            <div class="security-card-desc" id="securityDescTabs">Used only for opening links and media helpers smoothly. Required for core extension behavior.</div>
+            <div class="security-card-actions">
+              <button type="button" class="layout-btn" id="securityToggleTabs" disabled>Required</button>
+            </div>
+          </div>
+
+          <div class="security-card" id="securityCardPerformance">
+            <div class="security-card-head">
+              <div class="security-card-title" id="securityTitlePerformance">Performance</div>
+              <span class="security-status" id="securityStatusPerformance">Off</span>
+            </div>
+            <div class="security-card-desc" id="securityDescPerformance">Tune visual effects for slower devices. Light keeps most visuals while reducing load; On applies the strongest optimization.</div>
+            <div class="security-performance-modes" role="group" aria-label="Performance mode">
+              <button type="button" class="layout-btn" id="securityPerformanceOff">Off</button>
+              <button type="button" class="layout-btn" id="securityPerformanceLight">Light</button>
+              <button type="button" class="layout-btn" id="securityPerformanceOn">On</button>
+            </div>
+          </div>
+
+          <div class="security-actions">
+            <button type="button" class="layout-btn" id="securityManagePermissions">Manage Permissions</button>
+          </div>
+        </div>
+
+        <!-- THEME TAB -->
+        <div class="layout-tab" id="layoutTabTheme" data-tab="theme">
+          <div style="margin-bottom: 24px; text-align: center;">
+            <button type="button" class="layout-btn layout-btn-primary" id="layoutChangeBgBtn" title="Change Background" data-i18n="customize.changeBackground" data-i18n-title="customize.changeBackground" style="font-size: 1.2em; padding: 16px 32px; border-radius: 12px; background: #4f46e5; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">Change Background</button>
+          </div>
+          <!-- ...existing theme content... -->
+        </div>
+
+        <!-- ABOUT TAB -->
+        <div class="layout-tab" id="layoutTabAbout" data-tab="about">
+          <div class="layout-actions-group">
+            <div class="layout-action-row" style="align-items:flex-start;">
+              <div class="layout-action-desc" style="line-height:1.5; font-weight:500;" data-i18n="customize.aboutDescription">
+                GNTD New Tab helps you personalize your start page with widgets, bookmarks, weather, notes, and a flexible dashboard layout.
+              </div>
+            </div>
+            <div class="layout-action-row">
+              <div class="layout-action-desc" data-i18n="customize.aboutLearnMore">Learn more about us</div>
+              <button type="button" class="layout-btn" id="layoutAboutVisitBtn" data-i18n="customize.aboutVisit">Open gntd.us</button>
+            </div>
+            <div class="layout-action-row" style="align-items:flex-start; flex-direction:column; gap:10px;">
+              <div class="layout-action-desc" style="font-weight:600;" data-i18n="customize.aboutFollowUs">Follow us on social media</div>
+              <div class="about-social-links">
+                <a href="https://www.youtube.com/@Isma_co" target="_blank" rel="noopener noreferrer" class="about-social-btn about-social-yt">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+                  @Isma_co
+                </a>
+                <a href="https://www.instagram.com/isma_co01/" target="_blank" rel="noopener noreferrer" class="about-social-btn about-social-ig">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.975.975 1.246 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.334 2.633-1.308 3.608-.975.975-2.242 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.334-3.608-1.308-.975-.975-1.246-2.242-1.308-3.608C2.175 15.584 2.163 15.204 2.163 12s.012-3.584.07-4.85c.062-1.366.334-2.633 1.308-3.608.975-.975 2.242-1.246 3.608-1.308 1.266-.058 1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-1.609.074-3.032.4-4.131 1.499C1.823 2.67 1.497 4.093 1.423 5.702 1.365 6.982 1.351 7.39 1.351 12s.014 5.018.072 6.298c.074 1.609.4 3.032 1.499 4.131 1.099 1.099 2.522 1.425 4.131 1.499 1.28.058 1.688.072 4.947.072s3.667-.014 4.947-.072c1.609-.074 3.032-.4 4.131-1.499 1.099-1.099 1.425-2.522 1.499-4.131.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.074-1.609-.4-3.032-1.499-4.131C19.979.472 18.556.146 16.947.072 15.667.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                  isma_co01
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="layout-footer">
+        <button type="button" class="layout-btn" id="layoutReset" data-i18n="customize.resetLayout">Reset layout</button>
+        <button type="button" class="layout-btn layout-btn-primary" id="layoutDoneBtn" data-i18n="customize.done">Done</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+
+
+  <!-- BOOKMARKS (НЕ OVERLAY) -->
+  <div class="bookmarks-view" id="bookmarksView">
+    <section class="card widget bookmarks">
+      <div class="bm-library-head">
+        <button class="close-panel" id="closeBookmarks" type="button" aria-label="Back">←</button>
+        <div class="bm-library-title">
+          <h2 data-i18n="bookmarks.title">Bookmarks</h2>
+          <p>Everything opens in one click.</p>
+        </div>
+        <div class="bm-library-actions">
+          <button id="bmExportBookmarks" class="bm-export-top" type="button">Export</button>
+          <button id="bmImportBrowser" class="bm-import-top" type="button" data-i18n="bookmarks.importFromBrowser">Import</button>
+        </div>
+      </div>
+
+      <div class="bm-library-toolbar">
+        <div class="bm-search">
+          <input
+            id="bmSearch"
+            type="text"
+            placeholder="Search bookmarks..."
+            autocomplete="off"
+            data-i18n="bookmarks.search"
+          />
+          <button id="bmSearchClear" type="button">×</button>
+        </div>
+        <select id="bmSort" class="bm-sort" aria-label="Sort bookmarks">
+          <option value="custom">Sort: custom</option>
+          <option value="name">Sort: name</option>
+          <option value="url">Sort: url</option>
+        </select>
+      </div>
+
+      <div class="bm-group-tabs" id="bmGroupTabs" aria-label="Bookmark groups"></div>
+
+      <form id="bookmarkForm" class="bm-quick-add">
+        <button type="button" id="bmPickIcon" title="Choose icon" data-i18n-title="bookmarks.chooseIcon"><img class="bm-pick-icon" src="assets/image.png" alt="Choose icon" /></button>
+        <img id="bmIconPreview" alt="" style="width:22px;height:22px;border-radius:6px;display:none;" />
+
+        <input id="bmTitle" placeholder="Name" required data-i18n="bookmarks.name" />
+        <input id="bmUrl" placeholder="https://example.com" required data-i18n="bookmarks.url" />
+        <div class="select-wrap bm-group-wrap" id="bmGroupWrap">
+          <select id="bmGroup"></select>
+          <button type="button" class="bm-group-trigger" id="bmGroupTrigger" aria-haspopup="listbox" aria-expanded="false">
+            <span class="bm-group-trigger-text" id="bmGroupTriggerText" data-i18n="bookmarks.selectGroup">Select group</span>
+            <span class="bm-group-trigger-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="bm-group-menu" id="bmGroupMenu" role="listbox" hidden></div>
+        </div>
+
+        <button type="submit">＋</button>
+      </form>
+
+      <div class="group-controls">
+        <input id="newGroupName" placeholder="Newgroupname" data-i18n="bookmarks.newGroupName" />
+        <input type="color" id="newGroupColor" value="#4f46e5" />
+        <div class="select-wrap bm-group-wrap" id="newGroupAfterWrap">
+          <select id="newGroupAfter" aria-label="Insert new group position"></select>
+          <button type="button" class="bm-group-trigger" id="newGroupAfterTrigger" aria-haspopup="listbox" aria-expanded="false">
+            <span class="bm-group-trigger-text" id="newGroupAfterTriggerText" data-i18n="bookmarks.atEnd">At end</span>
+            <span class="bm-group-trigger-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="bm-group-menu" id="newGroupAfterMenu" role="listbox" hidden></div>
+        </div>
+        <button id="addGroupBtn" type="button" data-i18n="bookmarks.addGroup">Add group</button>
+      </div>
+
+      <div class="group-controls bm-group-edit-controls">
+        <div class="bm-group-edit-head" id="bmEditGroupHead" data-i18n="bookmarks.editGroup">Edit group</div>
+
+        <label class="bm-edit-field">
+          <span class="bm-edit-label" id="bmEditGroupSelectLabel" data-i18n="bookmarks.selectGroup">Select group</span>
+          <div class="select-wrap bm-group-wrap" id="bmEditGroupWrap">
+            <select id="bmEditGroupSelect" aria-label="Bookmark group"></select>
+            <button type="button" class="bm-group-trigger" id="bmEditGroupTrigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="bm-group-trigger-text" id="bmEditGroupTriggerText" data-i18n="bookmarks.selectGroup">Select group</span>
+              <span class="bm-group-trigger-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="bm-group-menu" id="bmEditGroupMenu" role="listbox" hidden></div>
+          </div>
+        </label>
+
+        <label class="bm-edit-field">
+          <span class="bm-edit-label" id="bmEditGroupNameLabel" data-i18n="bookmarks.newName">New name</span>
+          <input id="bmEditGroupName" type="text" placeholder="Newgroupname" data-i18n="bookmarks.newGroupName" />
+        </label>
+
+        <label class="bm-edit-field bm-edit-field-description">
+          <span class="bm-edit-label" id="bmEditGroupDescriptionLabel" data-i18n="bookmarks.description">Description</span>
+          <input id="bmEditGroupDescription" type="text" maxlength="220" placeholder="Description" data-i18n="bookmarks.description" />
+        </label>
+
+        <label class="bm-edit-field bm-edit-field-color">
+          <span class="bm-edit-label" id="bmEditGroupColorLabel" data-i18n="bookmarks.color">Color</span>
+          <input type="color" id="bmEditGroupColor" value="#4f46e5" />
+        </label>
+
+        <button id="bmEditGroupSave" type="button" data-i18n="bookmarks.saveGroup">Save group</button>
+      </div>
+
+      <ul id="bookmarkList"></ul>
+    </section>
+  </div>
+
+  <!-- TIME TRACKING / FOCUS TIMER VIEW -->
+  <div class="time-view" id="timeView">
+    <section class="card time-card">
+      <div class="time-topbar" id="timeTopbar">
+        <div class="time-topbar-left">
+          <button class="time-nav-btn time-nav-back" id="closeTimeView" type="button" aria-label="Back">←</button>
+          <button class="time-nav-btn is-active" id="timeNavTimer" type="button">Timer</button>
+          <button class="time-nav-btn" id="timeNavCalendar" type="button">Calendar</button>
+        </div>
+        <div class="time-topbar-right">
+          <div class="time-settings-menu-wrap" id="timeSettingsMenuWrap">
+            <button class="time-nav-btn" id="timeNavSettings" type="button" aria-haspopup="dialog" aria-expanded="false">Settings</button>
+            <div class="time-settings-menu" id="timeSettingsMenu" role="dialog" aria-labelledby="timeSettingsTitle" hidden>
+              <div class="time-section-title" id="timeSettingsTitle">Settings</div>
+              <div class="time-settings">
+                <label><span id="timeLabelFocus">Focus (min)</span><input id="timeFocusMins" type="number" value="25" min="1" /></label>
+                <label><span id="timeLabelShort">Short break</span><input id="timeShortMins" type="number" value="5" min="1" /></label>
+                <label><span id="timeLabelLong">Long break</span><input id="timeLongMins" type="number" value="15" min="1" /></label>
+                <label><span id="timeLabelRounds">Rounds to long</span><input id="timeRoundsToLong" type="number" value="4" min="2" /></label>
+              </div>
+              <div class="time-switches">
+                <label class="time-switch"><input id="timeAutoNext" type="checkbox" /> <span id="timeLabelAutoNext">Auto next</span></label>
+                <label class="time-switch"><input id="timeSoundOn" type="checkbox" checked /> <span id="timeLabelSound">Sound</span></label>
+                <label class="time-switch"><input id="timeNotifyOn" type="checkbox" /> <span id="timeLabelNotifications">Notifications</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="time-container" id="timeTimerView">
+        <div class="time-grid">
+          <section class="time-card time-card-main">
+            <div class="time-tabs" id="timeModeTabs">
+              <button class="time-tab is-active" data-mode="focus">Focus</button>
+              <button class="time-tab" data-mode="short">Short</button>
+              <button class="time-tab" data-mode="long">Long</button>
+              <button class="time-tab" data-mode="intense">Intense</button>
+            </div>
+
+            <div class="time-timer">
+              <div class="time-value" id="timeValue">25:00</div>
+              <div class="time-controls">
+                <button class="time-btn time-btn-primary" id="timeStart">Start</button>
+                <button class="time-btn time-btn-ghost" id="timeReset">Reset</button>
+                <button class="time-btn time-btn-success" id="timeCommit">Commit</button>
+              </div>
+              <div class="time-chips">
+                <span class="time-chip" id="timeRound">Round 1/4</span>
+                <span class="time-chip" id="timeTask">Task: —</span>
+                <span class="time-chip" id="timeStatus">Ready</span>
+              </div>
+              <div class="time-project-row">
+                <span class="time-project-label" id="timeProjectLabel">Project</span>
+                <select id="timeActiveProject"></select>
+                <span class="time-project-dot" id="timeProjectDot"></span>
+              </div>
+            </div>
+
+            <div class="time-section">
+              <div class="time-section-title" id="timeTasksTitle">Tasks</div>
+              <div class="time-task-input">
+                <input id="timeTaskInput" placeholder="Add a task" />
+                <input id="timeTaskDate" type="date" />
+                <button class="time-btn time-btn-success" id="timeAddTask">Add</button>
+              </div>
+              <div class="time-task-list" id="timeTaskList"></div>
+            </div>
+          </section>
+
+          <section class="time-card time-card-side">
+            <div class="time-section">
+              <div class="time-section-title" id="timeProjectsTitle">Projects</div>
+              <div class="time-project-input">
+                <input id="timeProjectInput" placeholder="Project name" />
+                <button class="time-btn time-btn-success" id="timeAddProject">Add</button>
+              </div>
+              <div class="time-project-list" id="timeProjectList"></div>
+            </div>
+
+            <div class="time-section">
+              <div class="time-section-title" id="timeStatsTitle">Stats</div>
+              <div class="time-stats">
+                <div class="time-kpi"><div class="time-kpi-label" id="timeKpiTodayLabel">Today</div><div class="time-kpi-val" id="timeKpiToday">0 min</div></div>
+                <div class="time-kpi"><div class="time-kpi-label" id="timeKpiSetsLabel">Sets</div><div class="time-kpi-val" id="timeKpiSets">0</div></div>
+                <div class="time-kpi"><div class="time-kpi-label" id="timeKpiTotalLabel">Total</div><div class="time-kpi-val" id="timeKpiTotal">0 min</div></div>
+              </div>
+              <div class="time-chart-controls">
+                <div class="time-chart-tabs" id="timeChartTabs">
+                  <button class="time-tab is-active" data-range="week">Week</button>
+                  <button class="time-tab" data-range="month">Month</button>
+                </div>
+                <select id="timeChartProject" title="Project filter"></select>
+              </div>
+              <canvas class="time-chart" id="timeChart" height="140" aria-label="Focus chart"></canvas>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="time-calendar-view" id="timeCalendarView" hidden>
+        <section class="time-calendar-main">
+          <div class="time-calendar-toolbar">
+            <div class="time-calendar-toolbar-left">
+              <button class="time-btn" id="timeCalendarToday" type="button">Today</button>
+              <button class="time-calendar-nav" id="timeCalendarPrev" type="button" aria-label="Previous month">‹</button>
+              <button class="time-calendar-nav" id="timeCalendarNext" type="button" aria-label="Next month">›</button>
+              <h2 class="time-calendar-title" id="timeCalendarTitle"></h2>
+            </div>
+            <div class="time-calendar-view-switcher" id="timeCalendarViewSwitcher">
+              <button class="time-calendar-view-btn" type="button" data-calendar-view="day">Day</button>
+              <button class="time-calendar-view-btn" type="button" data-calendar-view="week">Week</button>
+              <button class="time-calendar-view-btn is-active" type="button" data-calendar-view="month">Month</button>
+              <button class="time-calendar-view-btn" type="button" data-calendar-view="year">Year</button>
+              <button class="time-calendar-view-btn" type="button" data-calendar-view="agenda">Agenda</button>
+            </div>
+          </div>
+
+          <div class="time-calendar-weekdays" id="timeCalendarWeekdays"></div>
+          <div class="time-calendar-grid" id="timeCalendarGrid"></div>
+        </section>
+
+        <aside class="time-calendar-sidebar">
+          <div class="time-google-sync">
+            <div class="time-google-sync-head">
+              <div>
+                <div class="time-section-title" id="timeGoogleSyncTitle">Google sync</div>
+                <div class="time-google-sync-status" id="timeGoogleSyncStatus">Not connected</div>
+              </div>
+              <span class="time-google-sync-dot" id="timeGoogleSyncDot" aria-hidden="true"></span>
+            </div>
+            <div class="time-google-sync-actions">
+              <button class="time-btn time-btn-success" id="timeGoogleConnect" type="button">Connect Google</button>
+              <button class="time-btn" id="timeGoogleSyncNow" type="button" hidden>Sync now</button>
+              <button class="time-btn time-calendar-delete" id="timeGoogleDisconnect" type="button" hidden>Disconnect</button>
+            </div>
+          </div>
+
+          <div class="time-calendar-create-wrap" id="timeCalendarCreateWrap">
+            <button class="time-btn time-btn-success" id="timeCalendarCreateToggle" type="button" aria-haspopup="dialog" aria-expanded="false">Create</button>
+            <div class="time-calendar-create-menu" id="timeCalendarCreateMenu" role="dialog" aria-labelledby="timeCalendarCreateTitle" hidden>
+              <div class="time-section-title" id="timeCalendarCreateTitle">Create</div>
+              <form class="time-calendar-form" id="timeCalendarForm">
+                <input id="timeCalendarEventTitle" type="text" maxlength="160" placeholder="Add title" required />
+                <select id="timeCalendarEventType" aria-label="Type">
+                  <option value="event">Event</option>
+                  <option value="task">Task</option>
+                </select>
+                <div class="time-calendar-form-row">
+                  <input id="timeCalendarEventDate" type="date" required />
+                  <input id="timeCalendarEventTime" type="time" />
+                </div>
+                <div class="time-calendar-form-row">
+                  <input id="timeCalendarEventEndTime" type="time" />
+                  <select id="timeCalendarEventRepeat" aria-label="Repeat">
+                    <option value="none">Does not repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <input id="timeCalendarEventRepeatUntil" type="date" aria-label="Repeat until" />
+                <select id="timeCalendarEventProject" aria-label="Project"></select>
+                <input id="timeCalendarEventDescription" type="hidden" value="" />
+                <div class="time-calendar-form-actions">
+                  <button class="time-btn" id="timeCalendarCancelEdit" type="button" hidden>Cancel</button>
+                  <button class="time-btn time-calendar-delete" id="timeCalendarDeleteEvent" type="button" hidden>Delete</button>
+                  <button class="time-btn time-btn-success" id="timeCalendarSaveEvent" type="submit">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="time-calendar-selected-date" id="timeCalendarSelectedDate"></div>
+
+          <div class="time-calendar-agenda">
+            <div class="time-section-title" id="timeCalendarAgendaTitle">Schedule</div>
+            <div class="time-calendar-event-list" id="timeCalendarEventList"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+</div><!-- /workspace -->
+
+<!-- CONFIRM MODAL (used by time tracker delete project) -->
+<div class="confirm-modal" id="confirmModal" hidden>
+  <div class="confirm-backdrop" data-confirm-close="1"></div>
+  <div class="confirm-card" role="dialog" aria-modal="true">
+    <div class="confirm-title" id="confirmTitle">Delete project?</div>
+    <div class="confirm-message" id="confirmMessage">Are you sure you want to delete this project?</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn" id="confirmCancel" type="button">Cancel</button>
+      <button class="confirm-btn primary" id="confirmOk" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-hotzone"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar-pill" id="sidebarPill">
+  <button class="sb-btn" id="createAccountBtn" title="Create account" aria-label="Create account">
+    <img class="sb-btn-icon" src="assets/avatar.png" alt="" />
+  </button>
+  <div class="sb-divider"></div>
+
+  <button class="sb-btn" id="openBookmarks" title="Bookmarks" aria-label="Bookmarks">▦</button>
+  <button class="sb-btn" id="openTimePanel" title="Focus Timer" aria-label="Focus Timer">⏱</button>
+
+ 
+
+  <button class="sb-btn" id="layoutToggle" title="Customize" aria-label="Customize">⚙</button>
+
+  <button class="sb-btn" id="donateBg" title="Tutorial" aria-label="money">?</button>
+</nav>
+
+<input type="file" id="bmIconUpload" accept="image/*,.svg" hidden />
+
+<div class="auth-modal" id="authModal" hidden>
+  <div class="auth-modal-backdrop" data-close="1"></div>
+  <div class="auth-modal-card" role="dialog" aria-modal="true" aria-label="Account">
+    <div class="auth-modal-body">
+      <button type="button" class="auth-modal-close" id="authModalClose" aria-label="Close">✕</button>
+
+      <div class="auth-view" id="authSigninView">
+        <div class="auth-modal-title">Welcome</div>
+
+        <div class="auth-field-wrap">
+          <input id="authEmail" type="email" placeholder="Email" autocomplete="email" />
+        </div>
+
+        <div class="auth-field-wrap auth-password-wrap">
+          <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" />
+          <button type="button" class="auth-pass-toggle" id="authPassToggle" aria-label="Show password" title="Show password">👁</button>
+        </div>
+
+        <button type="button" id="authLoginBtn" class="auth-primary-btn">Sign In</button>
+
+        <button type="button" class="auth-forgot-btn" id="authForgotBtn">Forgot password?</button>
+
+        <button type="button" class="auth-google-btn" id="authGoogleBtn">
+          <span>Continue with Google</span>
+        </button>
+
+        <div class="auth-recent-accounts" id="authRecentAccounts" hidden>
+          <div class="auth-recent-label">Recent accounts</div>
+          <div class="auth-recent-list" id="authRecentAccountsList"></div>
+        </div>
+
+        <div class="auth-bottom-row">
+          <span class="auth-bottom-text">Don't have an account?</span>
+          <button type="button" id="authSignupBtn" class="auth-signup-btn">Sign Up</button>
+        </div>
+      </div>
+
+      <div class="auth-view" id="authSignupView" hidden>
+        <div class="auth-modal-title">Create account</div>
+
+        <div class="auth-field-wrap">
+          <input id="authSignupEmail" type="email" placeholder="Email" autocomplete="email" />
+        </div>
+
+        <div class="auth-field-wrap">
+          <input id="authSignupPassword" type="password" placeholder="Password" autocomplete="new-password" />
+        </div>
+
+        <div class="auth-field-wrap">
+          <input id="authSignupPasswordConfirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+        </div>
+
+        <button type="button" id="authRegisterBtn" class="auth-primary-btn">Create account</button>
+
+        <button type="button" id="authBackToSigninBtn" class="auth-forgot-btn">Already have an account? Sign In</button>
+      </div>
+
+      <div class="auth-view" id="authVerifyPendingView" hidden>
+        <div class="auth-verify-shell">
+          <div class="auth-modal-title">Verify your email</div>
+          <div class="auth-verify-copy" id="authVerifyIntro">
+            We sent a 6-digit code to your email.
+          </div>
+          <div class="auth-verify-email" id="authVerifyEmail">—</div>
+
+          <div class="auth-field-wrap">
+            <input
+              id="authVerifyCode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="123456"
+              aria-label="6-digit verification code"
+            />
+          </div>
+
+          <button type="button" id="authVerifyCodeBtn" class="auth-primary-btn">Verify</button>
+
+          <div class="auth-verify-copy" id="authVerifyMessage">
+            Enter the 6-digit code from your email.
+          </div>
+
+          <button type="button" id="authResendVerificationBtn" class="auth-forgot-btn">Resend code</button>
+          <button type="button" id="authVerifyToSigninBtn" class="auth-forgot-btn">Back to Sign In</button>
+        </div>
+      </div>
+
+      <div class="auth-view" id="authVerifySuccessView" hidden>
+        <div class="auth-verify-shell">
+          <div class="auth-modal-title">Email verified</div>
+          <div class="auth-verify-copy">
+            Verification was successful. You can now sign in and use the full cloud flow.
+          </div>
+          <button type="button" id="authVerifySuccessSigninBtn" class="auth-primary-btn">Continue to Sign In</button>
+        </div>
+      </div>
+
+      <div class="auth-view" id="authAccountView" hidden>
+        <div class="auth-profile-shell">
+          <div class="auth-profile-head">
+            <img class="auth-profile-avatar" src="assets/avatar.png" alt="" />
+            <div class="auth-profile-name" id="authProfileName">Profile</div>
+            <div class="auth-profile-email" id="authAccountEmail">—</div>
+          </div>
+
+          <div class="auth-menu-section-label">Personalize</div>
+          <div class="auth-menu-list">
+            <button type="button" class="auth-menu-item" id="authProfileDetailsBtn">
+              <span class="auth-menu-item-main">
+                <span class="auth-menu-item-icon">◔</span>
+                <span class="auth-menu-item-text">Personal Details</span>
+              </span>
+              <span class="auth-menu-item-chevron">›</span>
+            </button>
+
+            <button type="button" class="auth-menu-item" id="authProfilePlanBtn">
+              <span class="auth-menu-item-main">
+                <span class="auth-menu-item-icon">★</span>
+                <span class="auth-menu-item-text-group">
+                  <span class="auth-menu-item-text">Plan</span>
+                  <span class="auth-menu-item-subtext" id="authAccountPremiumUntil">—</span>
+                </span>
+              </span>
+              <span class="auth-menu-item-meta" id="authAccountPlan">free</span>
+              <span class="auth-menu-item-chevron">›</span>
+            </button>
+
+            <button type="button" id="authSwitchAccountBtn" class="auth-menu-item">
+              <span class="auth-menu-item-main">
+                <span class="auth-menu-item-icon">⇄</span>
+                <span class="auth-menu-item-text">Switch account</span>
+              </span>
+            </button>
+
+            <button type="button" id="authLogoutBtn" class="auth-menu-item">
+              <span class="auth-menu-item-main">
+                <span class="auth-menu-item-icon">↩</span>
+                <span class="auth-menu-item-text">Log out</span>
+              </span>
+            </button>
+
+            <button type="button" id="authDeleteBtn" class="auth-menu-item auth-menu-item--danger">
+              <span class="auth-menu-item-main">
+                <span class="auth-menu-item-icon auth-menu-item-icon--danger">✕</span>
+                <span class="auth-menu-item-text">Delete account</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="auth-menu-section-label">Need Help?</div>
+          <div class="auth-menu-list">
+            <button type="button" class="auth-menu-item" id="authProfileContactBtn">
+              <span class="auth-menu-item-main">
+                <span class="auth-menu-item-icon">✉</span>
+                <span class="auth-menu-item-text">Contact Us</span>
+              </span>
+              <span class="auth-menu-item-chevron">›</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-view" id="authDetailsView" hidden>
+        <div class="auth-details-shell">
+          <button type="button" class="auth-details-back" id="authDetailsBackBtn">‹ Back</button>
+          <div class="auth-modal-title">Personal Details</div>
+
+          <div class="auth-details-field-group">
+            <label class="auth-details-label">Email</label>
+            <div class="auth-details-value" id="authDetailsEmail">—</div>
+          </div>
+
+          <div class="auth-details-field-group">
+            <label class="auth-details-label" for="authDetailsNickname">Nickname</label>
+            <input id="authDetailsNickname" type="text" placeholder="Your display name" maxlength="32" autocomplete="off" />
+          </div>
+
+          <div class="auth-details-field-group">
+            <label class="auth-details-label">Subscription</label>
+            <div class="auth-verify-copy" id="authPlanHint">Manage your subscription and billing from your account portal.</div>
+          </div>
+
+          <button type="button" id="authDetailsSaveBtn" class="auth-primary-btn">Save</button>
+          <button type="button" id="authPlanManageBtn" class="auth-primary-btn">Manage Subscription</button>
+          <button type="button" id="authPlanCancelSubscriptionBtn" class="auth-forgot-btn" hidden>Cancel Subscription</button>
+        </div>
+      </div>
+
+      <div class="auth-view" id="authPlanView" hidden>
+        <div class="auth-details-shell">
+          <button type="button" class="auth-details-back" id="authPlanBackBtn">‹ Back</button>
+          <div class="auth-modal-title" id="authPlanTitle">Plan</div>
+
+          <div class="auth-details-field-group">
+            <label class="auth-details-label" id="authPlanCurrentLabel">Current Plan</label>
+            <div class="auth-details-value" id="authPlanCurrent">free</div>
+          </div>
+
+          <div class="auth-details-field-group">
+            <label class="auth-details-label" id="authPlanRenewalLabel">Premium Until</label>
+            <div class="auth-details-value" id="authPlanRenewal">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-view" id="authDeleteConfirmView" hidden>
+        <div class="auth-details-shell">
+          <button type="button" class="auth-details-back" id="authDeleteBackBtn">‹ Back</button>
+          <div class="auth-modal-title">Delete Account</div>
+          <div class="auth-delete-warning">
+            This will permanently delete your account and all synced data. This action <strong>cannot be undone</strong>.
+          </div>
+          <div class="auth-details-field-group">
+            <label class="auth-details-label" for="authDeleteConfirmInput">Type <span class="auth-delete-keyword">DELETE</span> to confirm</label>
+            <input id="authDeleteConfirmInput" type="text" placeholder="DELETE" autocomplete="off" spellcheck="false" />
+          </div>
+          <button type="button" id="authDeleteConfirmBtn" class="auth-delete-confirm-btn" disabled>Delete my account</button>
+        </div>
+      </div>
+
+      <div class="auth-modal-status" id="authStatusText"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app-notice" id="appNotice" hidden>
+  <div class="app-notice-backdrop" id="appNoticeBackdrop"></div>
+  <div class="app-notice-card" role="dialog" aria-modal="true" aria-label="Notice">
+    <div class="app-notice-title" id="appNoticeTitle">Coming soon</div>
+    <div class="app-notice-text" id="appNoticeText">This feature will be available in a future update.</div>
+    <div class="app-notice-actions">
+      <button type="button" class="app-notice-btn" id="appNoticeOk">OK</button>
+      <button type="button" class="app-notice-btn app-notice-btn--cancel" id="appNoticeCancel" hidden>Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="bookmark-share-modal" id="bookmarkShareModal" hidden>
+  <div class="bookmark-share-backdrop" id="bookmarkShareBackdrop"></div>
+  <div class="bookmark-share-card" role="dialog" aria-modal="true" aria-labelledby="bookmarkShareTitle">
+    <div class="bookmark-share-head">
+      <div>
+        <div class="bookmark-share-title" id="bookmarkShareTitle" data-i18n="bookmarks.inviteUserTitle">Share group link</div>
+        <div class="bookmark-share-group" id="bookmarkShareGroupName"></div>
+      </div>
+      <button type="button" class="bookmark-share-close" id="bookmarkShareClose" aria-label="Close">×</button>
+    </div>
+    <div class="bookmark-share-hint" data-i18n="bookmarks.inviteLinkHint">Anyone with this link can import the group. No email or nickname is required.</div>
+    <label class="bookmark-share-field">
+      <span data-i18n="bookmarks.inviteLinkLabel">Invite link</span>
+      <input id="bookmarkShareLink" type="text" autocomplete="off" readonly placeholder="Generating link..." />
+    </label>
+    <div class="bookmark-share-status" id="bookmarkShareStatus"></div>
+    <div class="bookmark-share-actions">
+      <button type="button" class="bookmark-share-btn bookmark-share-btn--cancel" id="bookmarkShareCancel" data-i18n="background.cancel">Cancel</button>
+      <button type="button" class="bookmark-share-btn bookmark-share-btn--save" id="bookmarkShareCopy" data-i18n="bookmarks.inviteCopyLink">Copy invite link</button>
+    </div>
+  </div>
+</div>
+
+<div class="icon-modal" id="iconModal" hidden>
+  <div class="icon-modal-card">
+    <div class="icon-modal-head">
+      <div class="icon-modal-title">Choose icon</div>
+      <button type="button" class="icon-x" id="iconModalClose">×</button>
+    </div>
+
+    <div class="icon-modal-actions">
+      <button type="button" class="icon-action" id="iconUploadBtn">Upload</button>
+      <button type="button" class="icon-action" id="iconClearBtn">Auto favicon</button>
+    </div>
+
+    <div class="icon-grid" id="iconGrid"></div>
+    <div class="icon-hint">Icons loaded from /icons/icons.json</div>
+  </div>
+</div>
+<template id="photosWidgetTpl">
+  <section class="card photos widget" data-widget="photos" data-instance="">
+    <div class="card-head">
+      <div class="title">Photos</div>
+      <div class="actions">
+        <button class="icon-btn" type="button" data-act="upload" title="Add photos">＋</button>
+        <button class="icon-btn" type="button" data-act="move-up" title="Move photo up">↑</button>
+        <button class="icon-btn" type="button" data-act="move-down" title="Move photo down">↓</button>
+        <button class="icon-btn" type="button" data-act="clear" title="Clear all photos">⟳</button>
+        <button class="icon-btn" type="button" data-act="size-toggle" title="Toggle wide view">⤢</button>
+      </div>
+    </div>
+
+    <input class="photos-input" type="file" accept="image/*" multiple hidden />
+
+    <div class="photos-grid" aria-label="Photos grid"></div>
+  </section>
+</template>
+
+<template id="folderWidgetTpl">
+  <section class="card fav widget folder-widget" data-widget="folder" data-instance="" data-group="" data-title="">
+    <h2 class="folder-widget-title"></h2>
+    <div class="fav-slots folder-slots"></div>
+  </section>
+</template>
+
+
+<!-- REVIEW FLOW -->
+<div class="review-modal" id="reviewModal" hidden>
+  <div class="review-backdrop"></div>
+  <div class="review-card" role="dialog" aria-modal="true">
+    <button class="review-close" id="reviewClose" type="button">✕</button>
+    <h2 class="review-title" data-i18n="review.title">Enjoying the New Tab?</h2>
+    <p class="review-subtitle" data-i18n="review.question">Do you like our extension?</p>
+    <div class="review-actions">
+      <button class="review-btn primary" id="reviewYes" type="button" data-i18n="review.yes">Yes</button>
+      <button class="review-btn" id="reviewNo" type="button" data-i18n="review.no">No</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREMIUM REMINDER -->
+<div class="review-modal premium-reminder-modal" id="premiumReminderModal" hidden>
+  <div class="review-backdrop premium-reminder-backdrop"></div>
+  <div class="review-card premium-reminder-card" role="dialog" aria-modal="true" aria-labelledby="premiumReminderTitle">
+    <button class="review-close premium-reminder-close" id="premiumReminderClose" type="button">✕</button>
+    <div class="premium-reminder-kicker" id="premiumReminderKicker">Premium</div>
+    <h2 class="review-title premium-reminder-title" id="premiumReminderTitle">Unlock GNTD Premium</h2>
+    <p class="review-subtitle premium-reminder-subtitle" id="premiumReminderText">
+      Upgrade to Premium to unlock sync, dashboard folders, wallpaper rotation, and more.
+    </p>
+    <div class="review-actions premium-reminder-actions">
+      <button class="review-btn" id="premiumReminderLater" type="button">Later</button>
+      <button class="review-btn primary" id="premiumReminderUpgrade" type="button">Get Premium</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- FIRST TIME TUTORIAL -->
+<div class="tutorial-modal" id="tutorialModal" hidden>
+  <div class="tutorial-backdrop"></div>
+  <div class="tutorial-card">
+    <button class="tutorial-close" id="tutorialClose" type="button">✕</button>
+    <h2 class="tutorial-title" data-i18n="tutorial.title">Welcome to Your New Tab!</h2>
+    <p class="tutorial-subtitle" data-i18n="tutorial.subtitle">Watch this quick tutorial to get started</p>
+
+    <!-- Tabs -->
+    <div class="tutorial-tabs">
+      <button class="tutorial-tab active" data-tab="shortcuts" type="button" data-i18n="tutorial.tabShortcuts">Keyboard Shortcuts</button>
+      <button class="tutorial-tab" data-tab="whats-new" type="button" data-i18n="tutorial.tabWhatsNew">What's New</button>
+    </div>
+
+    <!-- Tab: Shortcuts -->
+    <div class="tutorial-tab-panel" id="tutorialPanelShortcuts">
+      <div class="tutorial-hotkeys">
+        <div class="tutorial-hotkeys-title" data-i18n="tutorial.hotkeysTitle">Keyboard shortcuts</div>
+        <div class="tutorial-hotkeys-grid">
+          <div class="tutorial-hotkey-row">
+            <div class="tutorial-hotkey-keys"><kbd>Ctrl</kbd><span>+</span><kbd>B</kbd></div>
+            <div class="tutorial-hotkey-desc" data-i18n="tutorial.hotkeyBookmarks">Open / close Bookmarks</div>
+          </div>
+          <div class="tutorial-hotkey-row">
+            <div class="tutorial-hotkey-keys"><kbd>Enter</kbd></div>
+            <div class="tutorial-hotkey-desc" data-i18n="tutorial.hotkeySearch">Search / add task</div>
+          </div>
+          <div class="tutorial-hotkey-row">
+            <div class="tutorial-hotkey-keys"><kbd>Esc</kbd></div>
+            <div class="tutorial-hotkey-desc" data-i18n="tutorial.hotkeyEsc">Close panel / dialog</div>
+          </div>
+          <div class="tutorial-hotkey-row">
+            <div class="tutorial-hotkey-keys"><kbd>F11</kbd></div>
+            <div class="tutorial-hotkey-desc" data-i18n="tutorial.hotkeyFullscreen">Hide browser bars (fullscreen)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: What's New -->
+    <div class="tutorial-tab-panel" id="tutorialPanelWhatsNew" hidden>
+      <div class="tutorial-whats-new">
+        <div class="tutorial-wn-version">v1.2.7 — June 2026</div>
+        <ul class="tutorial-wn-list">
+          <li class="tutorial-wn-section-title">Updates</li>
+          <li class="tutorial-wn-item">
+            <span class="tutorial-wn-badge new">NEW</span>
+            <span>Added Focus Mode</span>
+          </li>
+          <li class="tutorial-wn-item">
+            <span class="tutorial-wn-badge new">NEW</span>
+            <span>Added Calendar</span>
+          </li>
+          <li class="tutorial-wn-section-title">Premium</li>
+          <li class="tutorial-wn-item">
+            <span class="tutorial-wn-badge premium">PRO</span>
+            <span>Google Calendar and Google Tasks sync</span>
+          </li>
+          <li class="tutorial-wn-item">
+            <span class="tutorial-wn-badge premium">PRO</span>
+            <span>Project system</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <button class="tutorial-btn" id="tutorialGotIt" type="button" data-i18n="tutorial.gotIt">▶ Start interactive tutorial</button>
+    <div class="tutorial-links">
+      <a href="https://gntd.us/FAQ" target="_blank" rel="noopener noreferrer" class="tutorial-faq-btn" data-i18n="tutorial.faq">FAQ</a>
+      <a href="mailto:isma.aka747@gmail.com?subject=New%20Tab%20Extension%20Support" class="tutorial-faq-btn" data-i18n="tutorial.contactUs">Contact Us</a>
+    </div>
+  </div>
+</div>
+
+<!-- JS В САМОМ КОНЦЕ -->
+<script src="newtab.js"></script>
+
+</div><!-- /app -->
+
+</body>
+</html>
+
+
