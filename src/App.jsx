@@ -449,55 +449,62 @@ function useRoute() {
 }
 
 function useSwipePages({ route }) {
-  const gestureRef = useRef(null);
+  const pointerRef = useRef(null);
   const suppressClickRef = useRef(false);
 
   useEffect(() => {
     const main = document.querySelector('.site-main');
     if (!main) return undefined;
 
-    const start = (event) => {
-      if (event.touches.length !== 1) return;
+    const shouldTrack = () =>
+      window.matchMedia?.('(max-width: 760px)').matches ||
+      window.matchMedia?.('(pointer: coarse)').matches;
+
+    const onPointerDown = (event) => {
+      if (!shouldTrack()) return;
       const target = event.target.closest?.('.mobile-dock, .music-panel, .music-button, .theme-toggle');
       if (target) {
-        gestureRef.current = null;
+        pointerRef.current = null;
         return;
       }
-      gestureRef.current = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY,
+      pointerRef.current = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
         locked: null,
-        swiped: false,
+        direction: null,
       };
     };
 
-    const move = (event) => {
-      const gesture = gestureRef.current;
-      if (!gesture || event.touches.length !== 1) return;
-      const dx = event.touches[0].clientX - gesture.x;
-      const dy = event.touches[0].clientY - gesture.y;
+    const onPointerMove = (event) => {
+      const pointer = pointerRef.current;
+      if (!pointer || event.pointerId !== pointer.pointerId) return;
+      const dx = event.clientX - pointer.x;
+      const dy = event.clientY - pointer.y;
 
-      if (!gesture.locked && Math.abs(dx) > 8) {
-        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
-          gesture.locked = 'horizontal';
-          if (event.cancelable) event.preventDefault();
-        } else if (Math.abs(dy) > Math.abs(dx) * 1.2) {
-          gesture.locked = 'vertical';
+      if (!pointer.locked && Math.abs(dx) > 8) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          pointer.locked = 'horizontal';
+        } else if (Math.abs(dy) > Math.abs(dx)) {
+          pointer.locked = 'vertical';
+          pointerRef.current = null;
         }
       }
     };
 
-    const end = () => {
-      const gesture = gestureRef.current;
-      gestureRef.current = null;
-      if (!gesture || gesture.locked !== 'horizontal' || gesture.swiped) return;
-      gesture.swiped = true;
+    const onPointerUp = (event) => {
+      const pointer = pointerRef.current;
+      pointerRef.current = null;
+      if (!pointer || event.pointerId !== pointer.pointerId) return;
+      if (pointer.locked !== 'horizontal') return;
 
-      // move uses stored x/y; touchend has no reliable coordinates in some browsers
+      const dx = event.clientX - pointer.x;
+      if (Math.abs(dx) < 64) return;
+      const direction = dx < 0 ? 'left' : 'right';
       const order = navItems.map((item) => item.key);
       const index = order.indexOf(route);
       if (index < 0) return;
-      const nextIndex = gesture.direction === 'left' ? index + 1 : index - 1;
+      const nextIndex = direction === 'left' ? index + 1 : index - 1;
       const next = order[nextIndex];
       if (!next) return;
       window.location.hash = `#/${next}`;
@@ -507,18 +514,8 @@ function useSwipePages({ route }) {
       }, 450);
     };
 
-    const onTouchEnd = (event) => {
-      const gesture = gestureRef.current;
-      if (!gesture || gesture.locked !== 'horizontal') return;
-      const touch = event.changedTouches[0];
-      const dx = touch ? touch.clientX - gesture.x : 0;
-      if (Math.abs(dx) >= 64) gesture.direction = dx < 0 ? 'left' : 'right';
-      else gesture.direction = null;
-      end();
-    };
-
-    const onTouchCancel = () => {
-      gestureRef.current = null;
+    const onPointerCancel = () => {
+      pointerRef.current = null;
     };
 
     const onClickCapture = (event) => {
@@ -528,17 +525,17 @@ function useSwipePages({ route }) {
       suppressClickRef.current = false;
     };
 
-    main.addEventListener('touchstart', start, { passive: true });
-    main.addEventListener('touchmove', move, { passive: false });
-    main.addEventListener('touchend', onTouchEnd);
-    main.addEventListener('touchcancel', onTouchCancel);
+    main.addEventListener('pointerdown', onPointerDown);
+    main.addEventListener('pointermove', onPointerMove);
+    main.addEventListener('pointerup', onPointerUp);
+    main.addEventListener('pointercancel', onPointerCancel);
     document.addEventListener('click', onClickCapture, true);
 
     return () => {
-      main.removeEventListener('touchstart', start);
-      main.removeEventListener('touchmove', move);
-      main.removeEventListener('touchend', onTouchEnd);
-      main.removeEventListener('touchcancel', onTouchCancel);
+      main.removeEventListener('pointerdown', onPointerDown);
+      main.removeEventListener('pointermove', onPointerMove);
+      main.removeEventListener('pointerup', onPointerUp);
+      main.removeEventListener('pointercancel', onPointerCancel);
       document.removeEventListener('click', onClickCapture, true);
     };
   }, [route]);
