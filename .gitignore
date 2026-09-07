@@ -1,4 +1,4 @@
 node_modules/
 dist/
 .check/
-.edge-autoplay-profile/
+.edge-*-profile/
