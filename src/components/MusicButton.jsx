@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Disc3, Pause, Play } from 'lucide-react';
 import LiquidSurface from './LiquidSurface.jsx';
 import './MusicButton.css';
@@ -31,9 +31,11 @@ export default function MusicButton({ tracks = [] }) {
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [syncedLyrics, setSyncedLyrics] = useState([]);
+  const [titleOverflow, setTitleOverflow] = useState(false);
   const rootRef = useRef(null);
   const audioRef = useRef(null);
   const lyricsListRef = useRef(null);
+  const titleRef = useRef(null);
   const track = tracks[0] || null;
 
   useEffect(() => {
@@ -54,6 +56,20 @@ export default function MusicButton({ tracks = [] }) {
       cancelled = true;
     };
   }, [track]);
+
+  useLayoutEffect(() => {
+    const checkTitle = () => {
+      const el = titleRef.current;
+      if (!el) return;
+      setTitleOverflow(el.scrollWidth > el.clientWidth + 1);
+    };
+    const frame = requestAnimationFrame(checkTitle);
+    window.addEventListener('resize', checkTitle);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', checkTitle);
+    };
+  }, [track?.title, open]);
 
   const lyricLine = useMemo(() => {
     if (!syncedLyrics.length) return -1;
@@ -166,6 +182,25 @@ export default function MusicButton({ tracks = [] }) {
             <div className="music-player__top">
               <div className="music-player__cover">
                 <img src={track.cover} alt="" />
+              </div>
+              <div className="music-player__info">
+                <strong
+                  ref={titleRef}
+                  className={`music-player__title ${titleOverflow ? 'is-marquee' : ''}`}
+                  title={track.title}
+                >
+                  {titleOverflow ? (
+                    <span className="music-player__marquee">
+                      <span className="music-player__marquee-track">{track.title}</span>
+                      <span className="music-player__marquee-track" aria-hidden="true">
+                        {track.title}
+                      </span>
+                    </span>
+                  ) : (
+                    track.title
+                  )}
+                </strong>
+                <small>{track.artist}</small>
                 <button
                   className="music-player__play"
                   type="button"
@@ -173,15 +208,11 @@ export default function MusicButton({ tracks = [] }) {
                   onClick={togglePlay}
                 >
                   {playing ? (
-                    <Pause size={18} strokeWidth={2.2} aria-hidden="true" />
+                    <Pause size={16} strokeWidth={2.2} aria-hidden="true" />
                   ) : (
-                    <Play size={18} strokeWidth={2.2} aria-hidden="true" fill="currentColor" />
+                    <Play size={16} strokeWidth={2.2} aria-hidden="true" fill="currentColor" />
                   )}
                 </button>
-              </div>
-              <div className="music-player__info">
-                <strong>{track.title}</strong>
-                <small>{track.artist}</small>
               </div>
             </div>
 
