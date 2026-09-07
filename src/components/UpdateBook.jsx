@@ -21,6 +21,8 @@ function EntrySheet({ entry }) {
 export default function UpdateBook({ entries = [] }) {
   const [index, setIndex] = useState(0);
   const swipeRef = useRef(null);
+  const touchRef = useRef(null);
+  const stageRef = useRef(null);
   const count = entries.length;
 
   useEffect(() => {
@@ -35,18 +37,72 @@ export default function UpdateBook({ entries = [] }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [count]);
 
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+
+    const onTouchStart = (event) => {
+      if (event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      touchRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        locked: null,
+      };
+    };
+
+    const onTouchMove = (event) => {
+      const gesture = touchRef.current;
+      if (!gesture || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const dx = touch.clientX - gesture.x;
+      const dy = touch.clientY - gesture.y;
+
+      if (!gesture.locked && Math.abs(dx) > 10) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          gesture.locked = 'horizontal';
+          if (event.cancelable) event.preventDefault();
+        } else if (Math.abs(dy) > Math.abs(dx)) {
+          gesture.locked = 'vertical';
+        }
+      }
+    };
+
+    const onTouchEnd = (event) => {
+      const gesture = touchRef.current;
+      touchRef.current = null;
+      if (!gesture || gesture.locked !== 'horizontal') return;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - gesture.x;
+      if (Math.abs(dx) < 56) return;
+      setIndex((current) => Math.min(count - 1, Math.max(0, current + (dx < 0 ? 1 : -1))));
+    };
+
+    const onTouchCancel = () => {
+      touchRef.current = null;
+    };
+
+    stage.addEventListener('touchstart', onTouchStart, { passive: true });
+    stage.addEventListener('touchmove', onTouchMove, { passive: false });
+    stage.addEventListener('touchend', onTouchEnd);
+    stage.addEventListener('touchcancel', onTouchCancel);
+    return () => {
+      stage.removeEventListener('touchstart', onTouchStart);
+      stage.removeEventListener('touchmove', onTouchMove);
+      stage.removeEventListener('touchend', onTouchEnd);
+      stage.removeEventListener('touchcancel', onTouchCancel);
+    };
+  }, [count]);
+
   if (!count) return null;
 
   const go = (direction) => {
     setIndex((current) => Math.min(count - 1, Math.max(0, current + direction)));
   };
 
-  const shouldTrackPointer = () =>
-    window.matchMedia?.('(max-width: 760px)').matches ||
-    window.matchMedia?.('(pointer: coarse)').matches;
-
   const onPointerDown = (event) => {
-    if (!shouldTrackPointer()) return;
+    if (event.pointerType === 'touch') return;
     swipeRef.current = {
       id: event.pointerId,
       x: event.clientX,
@@ -87,6 +143,7 @@ export default function UpdateBook({ entries = [] }) {
     <div className="update-book">
       <div
         className="update-book__stage"
+        ref={stageRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finishPointer}

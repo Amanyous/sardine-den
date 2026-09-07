@@ -833,6 +833,8 @@ p {
   overflow: hidden;
   perspective: 1600px;
   touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .update-book__sheet {
