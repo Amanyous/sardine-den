@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart3,
+  ArrowLeft,
+  ChevronRight,
   ExternalLink,
+  FileText,
   Github,
   Home,
   Laptop,
@@ -21,24 +23,23 @@ import DockLens from './components/DockLens.jsx';
 import UpdateBook from './components/UpdateBook.jsx';
 import ScrollHint from './components/ScrollHint.jsx';
 import {
+  articles,
   changelog,
   devices,
   favorites,
-  models,
   playerTrack,
   site,
-  stats,
   themePalettes,
 } from './data/site.js';
 
 const LiquidEther = lazy(() => import('./components/reactbits/LiquidEther.jsx'));
 
-const ROUTES = ['home', 'about', 'stats', 'devices'];
+const ROUTES = ['home', 'about', 'articles', 'devices'];
 
 const navItems = [
   { key: 'home', label: '首页', href: '#/', icon: Home },
   { key: 'devices', label: '设备', href: '#/devices', icon: Laptop },
-  { key: 'stats', label: '统计', href: '#/stats', icon: BarChart3 },
+  { key: 'articles', label: '文章', href: '#/articles', icon: FileText },
   { key: 'about', label: '关于', href: '#/about', icon: UserRound },
 ];
 
@@ -628,6 +629,58 @@ function EmptyState({ icon: Icon, title, lead }) {
   );
 }
 
+function ArticleBlock({ block }) {
+  switch (block.type) {
+    case 'h2':
+      return <h2 className="article__h2">{block.text}</h2>;
+    case 'p':
+      return <p className="article__p">{block.text}</p>;
+    case 'list':
+      return (
+        <ul className="article__list">
+          {block.items.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+      );
+    case 'note':
+      return <aside className="article__note">{block.text}</aside>;
+    case 'img':
+      return (
+        <figure className="article__figure">
+          <img className="article__img" src={block.src} alt={block.alt} loading="lazy" />
+          {block.caption ? <figcaption className="article__caption">{block.caption}</figcaption> : null}
+        </figure>
+      );
+    default:
+      return null;
+  }
+}
+
+function ArticleView({ article, onBack }) {
+  return (
+    <article className="article">
+      <button className="article__back" type="button" onClick={onBack}>
+        <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+        <span>返回列表</span>
+      </button>
+      <header className="article__head">
+        <span className="eyebrow">{article.tag}</span>
+        <h1 className="article__title">{article.title}</h1>
+        <p className="article__date">{article.date}</p>
+        <p className="article__summary">{article.summary}</p>
+      </header>
+      <LiquidSurface className="article__card" cornerRadius={28}>
+        <div className="article__body">
+          {article.body.map((block, index) => (
+            <ArticleBlock key={index} block={block} />
+          ))}
+        </div>
+      </LiquidSurface>
+    </article>
+  );
+}
+
 function PageIntro({ eyebrow, title, lead }) {
   return (
     <div className="page-intro">
@@ -735,7 +788,7 @@ function AboutPage() {
           <img className="profile-card__avatar" src={site.avatar} alt="沙丁鱼の小窝头像" />
           <div className="profile-card__body">
             <h2>{site.name}</h2>
-            <p>模型与 API 使用、设备清单和统计，之后都会在这里慢慢补全。</p>
+            <p>设备清单、文章与更新记录，之后都会在这里慢慢补全。</p>
           </div>
         </LiquidSurface>
 
@@ -753,39 +806,45 @@ function AboutPage() {
   );
 }
 
-function StatsPage() {
-  const hasStats = Object.values(stats).some((value) => value !== null);
+function ArticlesPage() {
+  const [activeId, setActiveId] = useState(null);
+  const active = articles.find((article) => article.id === activeId);
+
+  if (active) {
+    return <ArticleView article={active} onBack={() => setActiveId(null)} />;
+  }
 
   return (
     <>
       <section className="page">
         <PageIntro
-          eyebrow="STATS"
-          title="统计"
-          lead="调用次数、Token 消耗与设备数量会在这里展示。"
+          eyebrow="ARTICLES"
+          title="文章"
+          lead="记录开发过程、想法和日常折腾。"
         />
-        {hasStats ? (
-          <div className="stat-grid">
-            {Object.entries(stats).map(([key, value]) => (
-              <div className="stat-card" key={key}>
-                <strong>{value}</strong>
-                <span>{key}</span>
-              </div>
+        {articles.length ? (
+          <div className="article-list">
+            {articles.map((article) => (
+              <LiquidSurface className="article-row-glass" key={article.id} cornerRadius={20}>
+                <button
+                  className="article-row"
+                  type="button"
+                  onClick={() => setActiveId(article.id)}
+                >
+                  <span className="article-row__tag">{article.tag}</span>
+                  <span className="article-row__title">{article.title}</span>
+                  <span className="article-row__summary">{article.summary}</span>
+                  <span className="article-row__meta">
+                    <span className="article-row__date">{article.date}</span>
+                    <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />
+                  </span>
+                </button>
+              </LiquidSurface>
             ))}
           </div>
         ) : (
-          <EmptyState icon={BarChart3} title="统计数据暂未接入" lead="接入真实数据后，这里会显示调用与 Token 消耗。" />
+          <EmptyState icon={FileText} title="还没有文章" lead="第一篇文章发布后会显示在这里。" />
         )}
-        {models.length ? (
-          <div className="model-list">
-            {models.map((model) => (
-              <div className="model-row" key={model.name}>
-                <strong>{model.name}</strong>
-                <span>{model.usage}</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </section>
     </>
   );
@@ -861,7 +920,7 @@ function DevicesPage() {
 
 function Page({ route, ready }) {
   if (route === 'about') return <AboutPage />;
-  if (route === 'stats') return <StatsPage />;
+  if (route === 'articles') return <ArticlesPage />;
   if (route === 'devices') return <DevicesPage />;
   return <HomePage ready={ready} />;
 }
