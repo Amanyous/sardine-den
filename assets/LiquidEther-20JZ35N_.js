@@ -1,4 +1,4 @@
-import{r as Gt,j as Po}from"./index-_jsdn8sF.js";/**
+import{r as Gt,j as Po}from"./index-B4npxe4I.js";/**
  * @license
  * Copyright 2010-2025 Three.js Authors
  * SPDX-License-Identifier: MIT
