@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 function EntrySheet({ entry }) {
@@ -20,6 +20,7 @@ function EntrySheet({ entry }) {
 
 export default function UpdateBook({ entries = [] }) {
   const [index, setIndex] = useState(0);
+  const swipeRef = useRef(null);
   const count = entries.length;
 
   useEffect(() => {
@@ -40,9 +41,57 @@ export default function UpdateBook({ entries = [] }) {
     setIndex((current) => Math.min(count - 1, Math.max(0, current + direction)));
   };
 
+  const shouldTrackPointer = () =>
+    window.matchMedia?.('(max-width: 760px)').matches ||
+    window.matchMedia?.('(pointer: coarse)').matches;
+
+  const onPointerDown = (event) => {
+    if (!shouldTrackPointer()) return;
+    swipeRef.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      locked: null,
+    };
+  };
+
+  const onPointerMove = (event) => {
+    const gesture = swipeRef.current;
+    if (!gesture || event.pointerId !== gesture.id) return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    if (!gesture.locked && Math.abs(dx) > 10) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        gesture.locked = 'horizontal';
+      } else if (Math.abs(dy) > Math.abs(dx)) {
+        gesture.locked = 'vertical';
+      }
+    }
+  };
+
+  const finishPointer = (event) => {
+    const gesture = swipeRef.current;
+    swipeRef.current = null;
+    if (!gesture || event.pointerId !== gesture.id) return;
+    if (gesture.locked !== 'horizontal') return;
+    const dx = event.clientX - gesture.x;
+    if (Math.abs(dx) < 56) return;
+    go(dx < 0 ? 1 : -1);
+  };
+
+  const cancelPointer = () => {
+    swipeRef.current = null;
+  };
+
   return (
     <div className="update-book">
-      <div className="update-book__stage">
+      <div
+        className="update-book__stage"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={finishPointer}
+        onPointerCancel={cancelPointer}
+      >
         {entries.map((entry, entryIndex) => {
           const delta = entryIndex - index;
           const distance = Math.abs(delta);

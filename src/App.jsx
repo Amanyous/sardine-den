@@ -472,7 +472,9 @@ function useSwipePages({ route }) {
 
     const onPointerDown = (event) => {
       if (!shouldTrack()) return;
-      const target = event.target.closest?.('.mobile-dock, .music-panel, .music-button, .theme-toggle');
+      const target = event.target.closest?.(
+        '.mobile-dock, .music-panel, .music-button, .theme-toggle, .update-book',
+      );
       if (target) {
         pointerRef.current = null;
         return;
