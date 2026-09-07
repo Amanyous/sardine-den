@@ -1218,6 +1218,29 @@ p {
   }
 }
 
+/* Mobile perf: skip painting offscreen glass cards and drop the SVG
+   displacement on large cards, where per-frame refraction costs the most. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  .device-tile,
+  .favorite-tile,
+  .model-row,
+  .stat-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 340px;
+  }
+
+  .favorite-tile {
+    contain-intrinsic-size: auto 220px;
+  }
+
+  .device-tile .liquid-surface__refract,
+  .favorite-tile .liquid-surface__refract {
+    filter: none !important;
+    backdrop-filter: blur(3px) saturate(1.08);
+    -webkit-backdrop-filter: blur(3px) saturate(1.08);
+  }
+}
+
 /* Press feedback for every interactive control. Short interruptible ease on
    transform reacts on pointer-down; card-like links use opacity instead so the
    surrounding glass does not scale with the tap. */

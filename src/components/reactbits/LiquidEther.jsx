@@ -24,7 +24,9 @@ export default function LiquidEther({
   autoRampDuration = 0.6,
   backgroundColor = '#FFFFFF',
   lightMode = false,
-  running = true
+  running = true,
+  interactive = true,
+  maxFPS = 60
 }) {
   const mountRef = useRef(null);
   const webglRef = useRef(null);
@@ -939,9 +941,10 @@ export default function LiquidEther({
       constructor(props) {
         this.props = props;
         Common.init(props.$wrapper);
-        Mouse.init(props.$wrapper);
+        if (props.interactive) Mouse.init(props.$wrapper);
         Mouse.autoIntensity = props.autoIntensity;
         Mouse.takeoverDuration = props.takeoverDuration;
+        this.lastFrameTime = 0;
         this.lastUserInteraction = performance.now();
         Mouse.onInteract = () => {
           this.lastUserInteraction = performance.now();
@@ -984,7 +987,12 @@ export default function LiquidEther({
       }
       loop() {
         if (!this.running) return; // safety
-        this.render();
+        const now = performance.now();
+        const interval = this.props.maxFPS > 0 ? 1000 / this.props.maxFPS : 0;
+        if (!interval || now - this.lastFrameTime >= interval) {
+          this.render();
+          this.lastFrameTime = now;
+        }
         rafRef.current = requestAnimationFrame(this._loop);
       }
       start() {
@@ -1027,7 +1035,9 @@ export default function LiquidEther({
       autoIntensity,
       takeoverDuration,
       autoResumeDelay,
-      autoRampDuration
+      autoRampDuration,
+      interactive,
+      maxFPS
     });
     webglRef.current = webgl;
 

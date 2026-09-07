@@ -488,6 +488,8 @@ function FluidBackground({ resolvedTheme, reduced, fine, running }) {
             iterationsPoisson={lowPower ? 16 : 32}
             iterationsViscous={lowPower ? 8 : 32}
             dt={0.014}
+            interactive={fine}
+            maxFPS={lowPower ? 30 : 60}
             autoDemo
             autoSpeed={lowPower ? 0.32 : 0.5}
             autoIntensity={lowPower ? 1.4 : 2.2}
