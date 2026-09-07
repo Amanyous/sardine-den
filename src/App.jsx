@@ -485,6 +485,11 @@ function useSwipePages({ route }) {
       if (!pointer.locked && Math.abs(dx) > 8) {
         if (Math.abs(dx) > Math.abs(dy)) {
           pointer.locked = 'horizontal';
+          try {
+            main.setPointerCapture(event.pointerId);
+          } catch (err) {
+            void 0;
+          }
         } else if (Math.abs(dy) > Math.abs(dx)) {
           pointer.locked = 'vertical';
           pointerRef.current = null;

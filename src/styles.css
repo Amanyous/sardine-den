@@ -508,6 +508,10 @@ p {
   touch-action: pan-y;
 }
 
+.site-main * {
+  touch-action: pan-y;
+}
+
 .hero {
   position: relative;
   display: grid;
