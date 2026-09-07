@@ -832,6 +832,7 @@ p {
   min-height: min(390px, 58vh);
   overflow: hidden;
   perspective: 1600px;
+  touch-action: pan-y;
 }
 
 .update-book__sheet {
