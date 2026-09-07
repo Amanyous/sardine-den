@@ -638,10 +638,11 @@ function HomePage({ ready }) {
   return (
     <>
       <section className="hero">
+        <h1 className="visually-hidden">{site.headline}</h1>
         <div className="hero__copy">
           <p className="hero__kicker">{site.latinName}</p>
           {ready ? (
-            <div className="hero__title">
+            <div className="hero__title" aria-hidden="true">
               <StrokeText
                 className="hero__title-line hero__title-line--lead"
                 text={site.headlineLead}
@@ -674,10 +675,10 @@ function HomePage({ ready }) {
               />
             </div>
           ) : (
-            <h1 className="hero__title-pending">
+            <div className="hero__title-pending" aria-hidden="true">
               <span>{site.headlineLead}</span>
               <strong>{site.headlineBrand}</strong>
-            </h1>
+            </div>
           )}
           <p className="hero__intro">{site.intro}</p>
         </div>
