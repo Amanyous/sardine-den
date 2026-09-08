@@ -20,10 +20,22 @@ function EntrySheet({ entry }) {
 
 export default function UpdateBook({ entries = [] }) {
   const [index, setIndex] = useState(0);
+  const [moving, setMoving] = useState(false);
   const swipeRef = useRef(null);
   const touchRef = useRef(null);
   const stageRef = useRef(null);
+  const indexRef = useRef(0);
+  const movingTimerRef = useRef(null);
   const count = entries.length;
+
+  useEffect(() => {
+    if (indexRef.current === index) return undefined;
+    indexRef.current = index;
+    setMoving(true);
+    clearTimeout(movingTimerRef.current);
+    movingTimerRef.current = window.setTimeout(() => setMoving(false), 700);
+    return () => clearTimeout(movingTimerRef.current);
+  }, [index]);
 
   useEffect(() => {
     if (!count) return undefined;
@@ -140,7 +152,7 @@ export default function UpdateBook({ entries = [] }) {
   };
 
   return (
-    <div className="update-book">
+    <div className={`update-book ${moving ? 'is-moving' : ''}`}>
       <div
         className="update-book__stage"
         ref={stageRef}

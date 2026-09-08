@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ChevronRight,
@@ -23,7 +23,6 @@ import DockLens from './components/DockLens.jsx';
 import UpdateBook from './components/UpdateBook.jsx';
 import ScrollHint from './components/ScrollHint.jsx';
 import {
-  articles,
   changelog,
   devices,
   favorites,
@@ -580,7 +579,7 @@ function ThemeButton({ theme, onCycle, title }) {
   );
 }
 
-function FluidBackground({ resolvedTheme, reduced, fine, running }) {
+function FluidBackground({ resolvedTheme, reduced, fine, focused, interacting, running }) {
   const useWebGL = !reduced;
   const lowPower = !fine;
 
@@ -600,7 +599,7 @@ function FluidBackground({ resolvedTheme, reduced, fine, running }) {
             iterationsViscous={lowPower ? 8 : 32}
             dt={0.014}
             interactive={fine}
-            maxFPS={lowPower ? 30 : 60}
+            maxFPS={lowPower ? 30 : focused ? interacting ? 60 : 30 : 30}
             autoDemo
             autoSpeed={lowPower ? 0.32 : 0.5}
             autoIntensity={lowPower ? 1.4 : 2.2}
@@ -808,21 +807,32 @@ function AboutPage() {
 
 function ArticlesPage() {
   const [activeId, setActiveId] = useState(null);
-  const active = articles.find((article) => article.id === activeId);
+  const [articles, setArticles] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    import('./data/articles.js')
+      .then((module) => {
+        if (alive) setArticles(module.articles);
+      })
+      .catch(() => {
+        if (alive) setArticles([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const active = articles?.find((article) => article.id === activeId);
 
   if (active) {
     return <ArticleView article={active} onBack={() => setActiveId(null)} />;
   }
 
   return (
-    <>
-      <section className="page">
-        <PageIntro
-          eyebrow="ARTICLES"
-          title="文章"
-          lead="记录开发过程、想法和日常折腾。"
-        />
-        {articles.length ? (
+    <section className="page">
+      <PageIntro eyebrow="ARTICLES" title="文章" lead="记录开发过程、想法和日常折腾。" />
+      {articles?.length ? (
           <div className="article-list">
             {articles.map((article) => (
               <LiquidSurface className="article-row-glass" key={article.id} cornerRadius={20}>
@@ -842,11 +852,10 @@ function ArticlesPage() {
               </LiquidSurface>
             ))}
           </div>
-        ) : (
+        ) : articles ? (
           <EmptyState icon={FileText} title="还没有文章" lead="第一篇文章发布后会显示在这里。" />
-        )}
-      </section>
-    </>
+        ) : null}
+    </section>
   );
 }
 
@@ -919,11 +928,16 @@ function DevicesPage() {
 }
 
 function Page({ route, ready }) {
-  if (route === 'about') return <AboutPage />;
-  if (route === 'articles') return <ArticlesPage />;
-  if (route === 'devices') return <DevicesPage />;
-  return <HomePage ready={ready} />;
+  if (route === 'about') return <MemoAboutPage />;
+  if (route === 'articles') return <MemoArticlesPage />;
+  if (route === 'devices') return <MemoDevicesPage />;
+  return <MemoHomePage ready={ready} />;
 }
+
+const MemoHomePage = memo(HomePage);
+const MemoAboutPage = memo(AboutPage);
+const MemoArticlesPage = memo(ArticlesPage);
+const MemoDevicesPage = memo(DevicesPage);
 
 export default function App() {
   const route = useRoute();
@@ -938,8 +952,36 @@ export default function App() {
   });
   const [ready, setReady] = useState(false);
   const [backgroundActive, setBackgroundActive] = useState(true);
+  const [windowFocused, setWindowFocused] = useState(() => document.hasFocus?.() ?? true);
+  const [interacting, setInteracting] = useState(true);
+  const interactTimerRef = useRef(null);
 
   const themeTitle = `${THEME_META[theme].label}主题`;
+
+  useEffect(() => {
+    const wake = () => {
+      setInteracting(true);
+      clearTimeout(interactTimerRef.current);
+      interactTimerRef.current = window.setTimeout(() => setInteracting(false), 1600);
+    };
+    const events = ['pointermove', 'pointerdown', 'wheel', 'keydown'];
+    events.forEach((name) => window.addEventListener(name, wake, { passive: true }));
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, wake));
+      clearTimeout(interactTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onFocus = () => setWindowFocused(true);
+    const onBlur = () => setWindowFocused(false);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -995,6 +1037,8 @@ export default function App() {
   const desktopNavRef = useRef(null);
   const [pillGeom, setPillGeom] = useState({ x: 0, w: 0 });
   const [pillReady, setPillReady] = useState(false);
+  const lastPillGeomRef = useRef({ x: 0, w: 0 });
+  const pillBoostTimerRef = useRef(null);
 
   useLayoutEffect(() => {
     const nav = desktopNavRef.current;
@@ -1006,7 +1050,19 @@ export default function App() {
 
       const x = active.offsetLeft;
       const w = active.offsetWidth;
+      const changed = lastPillGeomRef.current.x !== x || lastPillGeomRef.current.w !== w;
+      lastPillGeomRef.current = { x, w };
       setPillGeom((prev) => (prev.x === x && prev.w === w ? prev : { x, w }));
+      if (changed) {
+        const pill = nav.querySelector('.desktop-nav__pill');
+        if (pill) {
+          pill.style.willChange = 'transform, width';
+          clearTimeout(pillBoostTimerRef.current);
+          pillBoostTimerRef.current = window.setTimeout(() => {
+            if (pill.isConnected) pill.style.willChange = 'auto';
+          }, 420);
+        }
+      }
     };
 
     const raf = requestAnimationFrame(update);
@@ -1016,6 +1072,7 @@ export default function App() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', update);
+      clearTimeout(pillBoostTimerRef.current);
     };
   }, [route, fine, ready]);
 
@@ -1026,6 +1083,8 @@ export default function App() {
   const dockNavRef = useRef(null);
   const [dockGeom, setDockGeom] = useState({ x: 0, w: 0 });
   const [dockReady, setDockReady] = useState(false);
+  const lastDockGeomRef = useRef({ x: 0, w: 0 });
+  const dockBoostTimerRef = useRef(null);
 
   useLayoutEffect(() => {
     const dock = dockNavRef.current;
@@ -1037,7 +1096,19 @@ export default function App() {
 
       const x = active.offsetLeft;
       const w = active.offsetWidth;
+      const changed = lastDockGeomRef.current.x !== x || lastDockGeomRef.current.w !== w;
+      lastDockGeomRef.current = { x, w };
       setDockGeom((prev) => (prev.x === x && prev.w === w ? prev : { x, w }));
+      if (changed) {
+        const glass = dock.querySelector('.dock-glass');
+        if (glass) {
+          glass.style.willChange = 'transform, width';
+          clearTimeout(dockBoostTimerRef.current);
+          dockBoostTimerRef.current = window.setTimeout(() => {
+            if (glass.isConnected) glass.style.willChange = 'auto';
+          }, 400);
+        }
+      }
     };
 
     const raf = requestAnimationFrame(update);
@@ -1047,6 +1118,7 @@ export default function App() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', update);
+      clearTimeout(dockBoostTimerRef.current);
     };
   }, [route, fine, ready]);
 
@@ -1070,9 +1142,16 @@ export default function App() {
 
   const background = useMemo(
     () => (
-      <FluidBackground resolvedTheme={theme} reduced={reduced} fine={fine} running={backgroundActive} />
+      <FluidBackground
+        resolvedTheme={theme}
+        reduced={reduced}
+        fine={fine}
+        focused={windowFocused}
+        interacting={interacting}
+        running={backgroundActive}
+      />
     ),
-    [theme, reduced, fine, backgroundActive],
+    [theme, reduced, fine, windowFocused, interacting, backgroundActive],
   );
 
   return (
