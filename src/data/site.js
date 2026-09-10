@@ -123,8 +123,8 @@ export const playerTrack = {
 export const changelog = [
   {
     date: '2026-09-10',
-    version: '0.8.0',
-    title: '文章与移动端交互',
+    version: '1.5.0',
+    title: '优化移动端交互',
     items: [
       '把“统计”改为“文章”',
       '文章列表与详情上线，文章数据按需加载',
@@ -133,13 +133,12 @@ export const changelog = [
       '移动端页面顶部与底部加入触屏回弹效果',
       '桌面端离屏卡片跳过绘制，玻璃合成层只在动画期间提升',
       'WebGL 关闭抗锯齿并限制像素比，空闲与失焦时自动降帧',
-      '更新 GitHub README，补充文章与资源目录说明',
       '修复歌词时间轴：按汽水音乐 KRC 逐句校准，不再用比例估算',
     ],
   },
   {
     date: '2026-09-07',
-    version: '0.7.0',
+    version: '1.4.0',
     title: '关于页与更新日志',
     items: [
       'About 页面布局优化，加入完整建站更新记录',
@@ -151,7 +150,7 @@ export const changelog = [
   },
   {
     date: '2026-09-07',
-    version: '0.6.0',
+    version: '1.3.0',
     title: '音乐播放器与移动端手势',
     items: [
       '接入音乐播放器：封面、播放进度、滚动歌词',
@@ -166,7 +165,7 @@ export const changelog = [
   },
   {
     date: '2026-09-06',
-    version: '0.5.0',
+    version: '1.2.0',
     title: '内容与折射重构',
     items: [
       '设备页加入真实机型图与官网入口',
@@ -180,7 +179,7 @@ export const changelog = [
   },
   {
     date: '2026-09-05',
-    version: '0.4.0',
+    version: '1.1.0',
     title: '液态玻璃视觉',
     items: [
       '动态流体背景',
@@ -194,7 +193,7 @@ export const changelog = [
   },
   {
     date: '2026-09-05',
-    version: '0.3.0',
+    version: '1.0.0',
     title: '小窝建立',
     items: [
       '基于 React + Vite 搭建个人主页',
