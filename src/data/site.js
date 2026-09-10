@@ -88,7 +88,7 @@ export const playerTrack = {
   title: 'Love Me Harder x We Don\'t Talk Anymore',
   artist: 'Mashup Edit',
   src: asset('/media/love-me-harder-x-wdta.mp3'),
-  cover: asset('/media/cover.svg'),
+  cover: asset('/media/cover.jpg'),
   lrc: asset('/media/love-me-harder-x-wdta.lrc'),
   lyrics: [
     'tell me something i need to know',
