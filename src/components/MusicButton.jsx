@@ -133,6 +133,18 @@ export default function MusicButton({ tracks = [] }) {
     }
   };
 
+  const toggleOpen = () => {
+    setOpen((value) => {
+      const next = !value;
+      const audio = audioRef.current;
+      if (next && audio?.readyState === 0) {
+        audio.preload = 'metadata';
+        audio.load();
+      }
+      return next;
+    });
+  };
+
   const seek = (event) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -147,7 +159,7 @@ export default function MusicButton({ tracks = [] }) {
         <audio
           ref={audioRef}
           src={track.src}
-          preload="metadata"
+          preload="none"
           onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
           onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
           onPlay={() => setPlaying(true)}
@@ -165,7 +177,7 @@ export default function MusicButton({ tracks = [] }) {
         aria-label="音乐播放器"
         aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleOpen}
       >
         <span className="music-toggle__glass" aria-hidden="true" />
         <Disc3 size={18} strokeWidth={1.8} aria-hidden="true" />

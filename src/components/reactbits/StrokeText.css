@@ -4,10 +4,6 @@
   line-height: 0;
 }
 
-.stroke-text--hover {
-  cursor: pointer;
-}
-
 .stroke-text__svg {
   display: block;
   width: 100%;

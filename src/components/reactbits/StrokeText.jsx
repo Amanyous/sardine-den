@@ -1,12 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import './StrokeText.css';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 const DEFAULT_TEXT = 'Draw Attention';
 
@@ -20,7 +15,6 @@ const StrokeText = ({
   stagger = 0.05,
   ease = 'power2.out',
   fillEase = 'power2.inOut',
-  trigger = 'mount',
   fillMode = 'wipe',
   fontSize = 128,
   fontWeight = 800,
@@ -134,8 +128,6 @@ const StrokeText = ({
       setStart();
       const tl = gsap.timeline({
         paused: true,
-        repeat: trigger === 'loop' ? -1 : 0,
-        repeatDelay: trigger === 'loop' ? 0.9 : 0,
         defaults: { overwrite: 'auto' }
       });
 
@@ -158,47 +150,21 @@ const StrokeText = ({
       return tl;
     };
 
-    let timeline = null;
-    let scrollTrigger = null;
-    let removeHover = null;
-
-    if (trigger === 'hover') {
-      setEnd();
-      const play = () => {
-        timeline?.kill();
-        timeline = build();
-        timeline.play(0);
-      };
-      root.addEventListener('pointerenter', play);
-      removeHover = () => root.removeEventListener('pointerenter', play);
-    } else {
-      timeline = build();
-      if (trigger === 'scroll') {
-        scrollTrigger = ScrollTrigger.create({
-          trigger: root,
-          start: 'top 82%',
-          once: true,
-          onEnter: () => timeline?.play(0)
-        });
-      } else {
-        timeline.play(0);
-      }
-    }
+    const timeline = build();
+    timeline.play(0);
 
     return () => {
-      removeHover?.();
-      scrollTrigger?.kill();
       timeline?.kill();
       gsap.killTweensOf(targets);
     };
-  }, [box, dash, drawDuration, fillDelay, stagger, ease, fillEase, trigger, fillMode, reverse]);
+  }, [box, dash, drawDuration, fillDelay, stagger, ease, fillEase, fillMode, reverse]);
 
   const viewBox = box ? `${box.x} ${box.y} ${box.width} ${box.height}` : `0 ${-fontSize} 600 ${fontSize * 1.3}`;
 
   return (
     <span
       ref={rootRef}
-      className={`stroke-text ${trigger === 'hover' ? 'stroke-text--hover' : ''} ${className}`.trim()}
+      className={`stroke-text ${className}`.trim()}
       style={{ ...style, '--stroke-text-height': `${Math.round(fontSize * 1.3)}px` }}
       role="img"
       aria-label={String(text ?? '')}

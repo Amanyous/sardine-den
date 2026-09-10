@@ -64,53 +64,34 @@ const THEME_META = {
   dark: { label: '深色', icon: Moon },
 };
 
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => window.matchMedia?.(query).matches ?? false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    if (media.addEventListener) {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, [query]);
+
+  return matches;
+}
+
 function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
-
-  useLayoutEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReduced(media.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-
-  return reduced;
+  return useMediaQuery('(prefers-reduced-motion: reduce)');
 }
 
 function useFinePointer() {
-  const [fine, setFine] = useState(() => window.matchMedia?.('(hover: hover) and (pointer: fine)').matches ?? false);
-
-  useEffect(() => {
-    const media = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const update = () => setFine(media.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-
-  return fine;
+  return useMediaQuery('(hover: hover) and (pointer: fine)');
 }
 
 function useCompactNav() {
-  const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 760px)').matches);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 760px)');
-    const update = (event) => setCompact(event.matches);
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', update);
-      return () => {
-        mq.removeEventListener('change', update);
-      };
-    }
-
-    mq.addListener(update);
-    return () => {
-      mq.removeListener(update);
-    };
-  }, []);
-
-  return compact;
+  return useMediaQuery('(max-width: 760px)');
 }
 
 function useNavMorph({ compact, desktopRef, dockRef, topbarRef, reduced }) {
@@ -462,6 +443,7 @@ function useSwipePages({ route }) {
   const pointerRef = useRef(null);
   const suppressClickRef = useRef(false);
   const settleTimerRef = useRef(null);
+  const [swiping, setSwiping] = useState(false);
 
   useLayoutEffect(() => {
     const main = document.querySelector('.site-main');
@@ -486,6 +468,7 @@ function useSwipePages({ route }) {
       track.style.transition = 'none';
       setTrack(0);
       main.classList.remove('is-swiping');
+      setSwiping(false);
     };
 
     const settle = (x, nextRoute) => {
@@ -529,6 +512,7 @@ function useSwipePages({ route }) {
       if (!pointer.locked && Math.abs(dx) > 8) {
         if (Math.abs(dx) > Math.abs(dy)) {
           pointer.locked = 'horizontal';
+          setSwiping(true);
           try {
             main.setPointerCapture(event.pointerId);
           } catch (err) {
@@ -597,6 +581,8 @@ function useSwipePages({ route }) {
       resetTrack();
     };
   }, [route]);
+
+  return swiping;
 }
 
 function useScrollBounce() {
@@ -771,7 +757,15 @@ function ArticleBlock({ block }) {
     case 'img':
       return (
         <figure className="article__figure">
-          <img className="article__img" src={block.src} alt={block.alt} loading="lazy" />
+          <img
+            className="article__img"
+            src={block.src}
+            alt={block.alt}
+            width="1600"
+            height="1000"
+            loading="lazy"
+            decoding="async"
+          />
           {block.caption ? <figcaption className="article__caption">{block.caption}</figcaption> : null}
         </figure>
       );
@@ -1013,7 +1007,7 @@ function DevicesPage() {
                     {group.items.map((device) => (
                       <LiquidSurface className="device-tile" key={device.id} cornerRadius={20}>
                         <div className="device-tile__media">
-                          <img src={device.image} alt={device.name} loading="lazy" />
+                          <img src={device.image} alt={device.name} loading="lazy" decoding="async" />
                           <span className="device-tile__index" aria-hidden="true">
                             {String(devices.indexOf(device) + 1).padStart(2, '0')}
                           </span>
@@ -1065,7 +1059,7 @@ const MemoDevicesPage = memo(DevicesPage);
 
 export default function App() {
   const route = useRoute();
-  useSwipePages({ route });
+  const pageSwipeActive = useSwipePages({ route });
   useScrollBounce();
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
@@ -1340,7 +1334,7 @@ export default function App() {
         <main className="site-main" id="main">
           <div className="page-track">
             {pageSlots.map(({ slot, route: pageRoute }) =>
-              pageRoute && (slot === 'current' || compactNav) ? (
+              pageRoute && (slot === 'current' || (compactNav && pageSwipeActive)) ? (
                 <div
                   key={pageRoute}
                   className={`page-pane container ${slot === 'current' ? 'is-active' : ''}`}

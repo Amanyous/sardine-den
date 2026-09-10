@@ -7,6 +7,7 @@ const DRAG_THRESHOLD = 10;
 
 export default function DockLens({ active, items, reduced }) {
   const lensRef = useRef(null);
+  const wakeRef = useRef(() => {});
   const st = useRef({
     x: 0,
     tx: 0,
@@ -75,6 +76,10 @@ export default function DockLens({ active, items, reduced }) {
       snapToActive();
       return undefined;
     }
+    const stop = () => {
+      if (st.current.raf) cancelAnimationFrame(st.current.raf);
+      st.current.raf = 0;
+    };
     const loop = () => {
       const s = st.current;
       if (!s.dragging) {
@@ -86,14 +91,36 @@ export default function DockLens({ active, items, reduced }) {
       s.vs += as;
       s.scale += s.vs;
       apply();
+      const settled =
+        !s.dragging &&
+        Math.abs(s.tx - s.x) < 0.05 &&
+        Math.abs(s.vx) < 0.05 &&
+        Math.abs(s.ts - s.scale) < 0.005 &&
+        Math.abs(s.vs) < 0.005;
+      if (settled) {
+        s.x = s.tx;
+        s.scale = s.ts;
+        s.vx = s.vs = 0;
+        apply();
+        s.raf = 0;
+        return;
+      }
       s.raf = requestAnimationFrame(loop);
     };
-    st.current.raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(st.current.raf);
+    const wake = () => {
+      if (!st.current.raf) st.current.raf = requestAnimationFrame(loop);
+    };
+    wakeRef.current = wake;
+    wake();
+    return () => {
+      wakeRef.current = () => {};
+      stop();
+    };
   }, [reduced]);
 
   useEffect(() => {
     st.current.tx = activeCenter();
+    wakeRef.current();
   }, [active, items]);
 
   useLayoutEffect(() => {
@@ -115,6 +142,7 @@ export default function DockLens({ active, items, reduced }) {
       const rel = event.clientX - dock.getBoundingClientRect().left;
       const n = nearest(rel);
       if (n) s.tx = n.x;
+      wakeRef.current();
     };
 
     const onMove = (event) => {
@@ -139,6 +167,7 @@ export default function DockLens({ active, items, reduced }) {
         dock.querySelectorAll('.dock-link').forEach((el) => {
           el.classList.toggle('is-hover', !!target && el.getAttribute('data-nav') === target.key);
         });
+        wakeRef.current();
       }
     };
 
@@ -162,6 +191,7 @@ export default function DockLens({ active, items, reduced }) {
       } else {
         s.tx = activeCenter();
       }
+      wakeRef.current();
       try {
         dock.releasePointerCapture(event.pointerId);
       } catch (e) {
@@ -176,6 +206,7 @@ export default function DockLens({ active, items, reduced }) {
       s.ts = 1;
       dock.querySelectorAll('.dock-link').forEach((el) => el.classList.remove('is-hover'));
       s.tx = activeCenter();
+      wakeRef.current();
     };
 
     const onClickCapture = (event) => {
