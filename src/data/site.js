@@ -86,7 +86,7 @@ export const devices = [
 
 export const playerTrack = {
   title: 'Love Me Harder x We Don\'t Talk Anymore',
-  artist: 'Mashup Edit',
+  artist: 'Ariana Grande & The Weeknd',
   src: asset('/media/love-me-harder-x-wdta.mp3'),
   cover: asset('/media/cover.jpg'),
   lrc: asset('/media/love-me-harder-x-wdta.lrc'),
