@@ -67,7 +67,7 @@ const THEME_META = {
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReduced(media.matches);
     media.addEventListener('change', update);
@@ -461,14 +461,46 @@ function useRoute() {
 function useSwipePages({ route }) {
   const pointerRef = useRef(null);
   const suppressClickRef = useRef(false);
+  const settleTimerRef = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const main = document.querySelector('.site-main');
-    if (!main) return undefined;
+    const track = main?.querySelector('.page-track');
+    if (!main || !track) return undefined;
 
     const shouldTrack = () =>
       window.matchMedia?.('(max-width: 760px)').matches ||
       window.matchMedia?.('(pointer: coarse)').matches;
+
+    const order = navItems.map((item) => item.key);
+    const routeIndex = order.indexOf(route);
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    const setTrack = (x) => {
+      track.style.transform = `translate3d(${x}px, 0, 0)`;
+    };
+
+    const resetTrack = () => {
+      window.clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+      track.style.transition = 'none';
+      setTrack(0);
+      main.classList.remove('is-swiping');
+    };
+
+    const settle = (x, nextRoute) => {
+      const duration = reduced ? 0 : 320;
+      main.classList.add('is-swiping');
+      track.style.transition = duration
+        ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
+        : 'none';
+      setTrack(x);
+      window.clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = window.setTimeout(() => {
+        if (nextRoute) window.location.hash = `#/${nextRoute}`;
+        requestAnimationFrame(resetTrack);
+      }, duration);
+    };
 
     const onPointerDown = (event) => {
       if (!shouldTrack()) return;
@@ -479,12 +511,12 @@ function useSwipePages({ route }) {
         pointerRef.current = null;
         return;
       }
+      resetTrack();
       pointerRef.current = {
         pointerId: event.pointerId,
         x: event.clientX,
         y: event.clientY,
         locked: null,
-        direction: null,
       };
     };
 
@@ -507,6 +539,11 @@ function useSwipePages({ route }) {
           pointerRef.current = null;
         }
       }
+      if (pointer.locked === 'horizontal') {
+        const atStart = dx > 0 && routeIndex <= 0;
+        const atEnd = dx < 0 && routeIndex >= order.length - 1;
+        setTrack(atStart || atEnd ? dx * 0.24 : dx);
+      }
     };
 
     const onPointerUp = (event) => {
@@ -516,23 +553,26 @@ function useSwipePages({ route }) {
       if (pointer.locked !== 'horizontal') return;
 
       const dx = event.clientX - pointer.x;
-      if (Math.abs(dx) < 64) return;
       const direction = dx < 0 ? 'left' : 'right';
-      const order = navItems.map((item) => item.key);
-      const index = order.indexOf(route);
-      if (index < 0) return;
-      const nextIndex = direction === 'left' ? index + 1 : index - 1;
+      const nextIndex = direction === 'left' ? routeIndex + 1 : routeIndex - 1;
       const next = order[nextIndex];
-      if (!next) return;
-      window.location.hash = `#/${next}`;
+      if (Math.abs(dx) < 64 || !next) {
+        settle(0);
+        return;
+      }
+
       suppressClickRef.current = true;
       window.setTimeout(() => {
         suppressClickRef.current = false;
       }, 450);
+      settle(direction === 'left' ? -main.clientWidth : main.clientWidth, next);
     };
 
     const onPointerCancel = () => {
+      const pointer = pointerRef.current;
       pointerRef.current = null;
+      if (pointer?.locked === 'horizontal') settle(0);
+      else resetTrack();
     };
 
     const onClickCapture = (event) => {
@@ -554,8 +594,92 @@ function useSwipePages({ route }) {
       main.removeEventListener('pointerup', onPointerUp);
       main.removeEventListener('pointercancel', onPointerCancel);
       document.removeEventListener('click', onClickCapture, true);
+      resetTrack();
     };
   }, [route]);
+}
+
+function useScrollBounce() {
+  useEffect(() => {
+    const stack = document.querySelector('.site-stack');
+    if (!stack) return undefined;
+
+    const shouldTrack = () =>
+      window.matchMedia?.('(max-width: 760px)').matches ||
+      window.matchMedia?.('(pointer: coarse)').matches;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const state = { active: false, locked: null, applied: false };
+    let resetTimer;
+
+    const reset = () => {
+      if (!state.applied) return;
+      state.applied = false;
+      stack.style.transition = reduced
+        ? 'none'
+        : 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)';
+      stack.style.transform = 'translate3d(0, 0, 0)';
+      window.clearTimeout(resetTimer);
+      resetTimer = window.setTimeout(() => {
+        stack.style.transition = 'none';
+        stack.style.willChange = 'auto';
+      }, reduced ? 0 : 320);
+    };
+
+    const onTouchStart = (event) => {
+      if (!shouldTrack() || event.touches.length !== 1) return;
+      if (event.target.closest?.('.mobile-dock, .music-panel, .music-button, .theme-toggle, .update-book')) return;
+      state.active = true;
+      state.locked = null;
+      state.startX = event.touches[0].clientX;
+      state.startY = event.touches[0].clientY;
+    };
+
+    const onTouchMove = (event) => {
+      if (!state.active || event.touches.length !== 1) return;
+      const dx = event.touches[0].clientX - state.startX;
+      const dy = event.touches[0].clientY - state.startY;
+
+      if (!state.locked) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        state.locked = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+      }
+      if (state.locked !== 'vertical') return;
+
+      const scroller = document.scrollingElement || document.documentElement;
+      const atTop = scroller.scrollTop <= 0;
+      const atBottom = scroller.scrollTop + window.innerHeight >= scroller.scrollHeight - 1;
+      if (!(atTop && dy > 0) && !(atBottom && dy < 0)) {
+        reset();
+        return;
+      }
+
+      if (event.cancelable) event.preventDefault();
+      state.applied = true;
+      stack.style.transition = 'none';
+      stack.style.willChange = 'transform';
+      stack.style.transform = `translate3d(0, ${Math.sign(dy) * Math.min(96, Math.abs(dy) * 0.45)}px, 0)`;
+    };
+
+    const onTouchEnd = () => {
+      state.active = false;
+      state.locked = null;
+      reset();
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+      window.clearTimeout(resetTimer);
+      stack.style.transform = 'translate3d(0, 0, 0)';
+      stack.style.willChange = 'auto';
+    };
+  }, []);
 }
 
 function ThemeButton({ theme, onCycle, title }) {
@@ -942,6 +1066,7 @@ const MemoDevicesPage = memo(DevicesPage);
 export default function App() {
   const route = useRoute();
   useSwipePages({ route });
+  useScrollBounce();
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
   const compactNav = useCompactNav();
@@ -955,6 +1080,13 @@ export default function App() {
   const [windowFocused, setWindowFocused] = useState(() => document.hasFocus?.() ?? true);
   const [interacting, setInteracting] = useState(true);
   const interactTimerRef = useRef(null);
+  const routeKeys = navItems.map((item) => item.key);
+  const routeIndex = routeKeys.indexOf(route);
+  const pageSlots = [
+    { slot: 'prev', route: routeKeys[routeIndex - 1] },
+    { slot: 'current', route },
+    { slot: 'next', route: routeKeys[routeIndex + 1] },
+  ];
 
   const themeTitle = `${THEME_META[theme].label}主题`;
 
@@ -1204,14 +1336,30 @@ export default function App() {
         </div>
       </header>
 
-      <main className="site-main container" id="main">
-        <Page route={route} ready={ready} />
-      </main>
+      <div className="site-stack">
+        <main className="site-main" id="main">
+          <div className="page-track">
+            {pageSlots.map(({ slot, route: pageRoute }) =>
+              pageRoute && (slot === 'current' || compactNav) ? (
+                <div
+                  key={pageRoute}
+                  className={`page-pane container ${slot === 'current' ? 'is-active' : ''}`}
+                  data-slot={slot}
+                  aria-hidden={slot === 'current' ? undefined : true}
+                  inert={slot === 'current' ? undefined : true}
+                >
+                  <Page route={pageRoute} ready={ready} />
+                </div>
+              ) : null,
+            )}
+          </div>
+        </main>
 
-      <footer className="site-footer container">
-        <GlassIcons className="footer-icons" items={contactItems} />
-        <p>{site.name}</p>
-      </footer>
+        <footer className="site-footer container">
+          <GlassIcons className="footer-icons" items={contactItems} />
+          <p>{site.name}</p>
+        </footer>
+      </div>
 
       <LiquidSurface
         className="mobile-dock"
