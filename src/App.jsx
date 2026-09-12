@@ -1,6 +1,5 @@
 import { lazy, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
-import { gsap } from 'gsap';
 import {
   ArrowLeft,
   ChevronRight,
@@ -21,7 +20,6 @@ import LiquidSurface from './components/LiquidSurface.jsx';
 import GlassDefs from './components/GlassDefs.jsx';
 import MusicButton from './components/MusicButton.jsx';
 import HelloStroke from './components/HelloStroke.jsx';
-import StrokeText from './components/reactbits/StrokeText.jsx';
 import DockLens from './components/DockLens.jsx';
 import UpdateBook from './components/UpdateBook.jsx';
 import ScrollHint from './components/ScrollHint.jsx';
@@ -35,6 +33,7 @@ import {
 } from './data/site.js';
 
 const LiquidEther = lazy(() => import('./components/reactbits/LiquidEther.jsx'));
+const StrokeText = lazy(() => import('./components/reactbits/StrokeText.jsx'));
 
 const ROUTES = ['home', 'about', 'articles', 'devices'];
 
@@ -487,6 +486,8 @@ function useSwipePages({ route }) {
     const order = navItems.map((item) => item.key);
     const routeIndex = order.indexOf(route);
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let frame = 0;
+    let pendingX = 0;
 
     const setTrack = (x) => {
       track.style.transform = `translate3d(${x}px, 0, 0)`;
@@ -496,18 +497,36 @@ function useSwipePages({ route }) {
       );
     };
 
+    const scheduleTrack = (x) => {
+      pendingX = x;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setTrack(pendingX);
+      });
+    };
+
+    const cancelFrame = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+    };
+
     const resetTrack = () => {
+      cancelFrame();
       window.clearTimeout(settleTimerRef.current);
       settleTimerRef.current = null;
       track.style.transition = 'none';
       setTrack(0);
+      main.classList.remove('is-dragging-pages');
       main.classList.remove('is-swiping');
       setSwiping(false);
       setSwipeSlot(null);
     };
 
     const settle = (x, nextRoute) => {
+      cancelFrame();
       const duration = reduced ? 0 : 260;
+      main.classList.remove('is-dragging-pages');
       main.classList.add('is-swiping');
       track.style.transition = duration
         ? 'transform 260ms cubic-bezier(0.25, 0.1, 0.25, 1)'
@@ -552,6 +571,7 @@ function useSwipePages({ route }) {
           pointer.locked = 'horizontal';
           setSwipeSlot(dx < 0 ? 'next' : 'prev');
           setSwiping(true);
+          main.classList.add('is-dragging-pages');
           try {
             main.setPointerCapture(event.pointerId);
           } catch (err) {
@@ -565,7 +585,7 @@ function useSwipePages({ route }) {
       if (pointer.locked === 'horizontal') {
         const atStart = dx > 0 && routeIndex <= 0;
         const atEnd = dx < 0 && routeIndex >= order.length - 1;
-        setTrack(atStart || atEnd ? dx * 0.24 : dx);
+        scheduleTrack(atStart || atEnd ? dx * 0.24 : dx);
         const now = performance.now();
         const elapsed = Math.max(1, now - pointer.lastTime);
         pointer.velocity = (event.clientX - pointer.lastX) / elapsed;
@@ -614,17 +634,19 @@ function useSwipePages({ route }) {
       suppressClickRef.current = false;
     };
 
-    main.addEventListener('pointerdown', onPointerDown);
-    main.addEventListener('pointermove', onPointerMove);
-    main.addEventListener('pointerup', onPointerUp);
-    main.addEventListener('pointercancel', onPointerCancel);
+    const passive = { passive: true };
+    main.addEventListener('pointerdown', onPointerDown, passive);
+    main.addEventListener('pointermove', onPointerMove, passive);
+    main.addEventListener('pointerup', onPointerUp, passive);
+    main.addEventListener('pointercancel', onPointerCancel, passive);
     document.addEventListener('click', onClickCapture, true);
 
     return () => {
-      main.removeEventListener('pointerdown', onPointerDown);
-      main.removeEventListener('pointermove', onPointerMove);
-      main.removeEventListener('pointerup', onPointerUp);
-      main.removeEventListener('pointercancel', onPointerCancel);
+      cancelFrame();
+      main.removeEventListener('pointerdown', onPointerDown, passive);
+      main.removeEventListener('pointermove', onPointerMove, passive);
+      main.removeEventListener('pointerup', onPointerUp, passive);
+      main.removeEventListener('pointercancel', onPointerCancel, passive);
       document.removeEventListener('click', onClickCapture, true);
       resetTrack();
     };
@@ -644,8 +666,16 @@ function useScrollBounce() {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const state = { active: false, locked: null, applied: false };
     let resetTimer;
+    let frame = 0;
+    let pendingY = 0;
+
+    const cancelFrame = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+    };
 
     const reset = () => {
+      cancelFrame();
       if (!state.applied) return;
       state.applied = false;
       stack.style.transition = reduced
@@ -691,7 +721,13 @@ function useScrollBounce() {
       state.applied = true;
       stack.style.transition = 'none';
       stack.style.willChange = 'transform';
-      stack.style.transform = `translate3d(0, ${Math.sign(dy) * Math.min(96, Math.abs(dy) * 0.45)}px, 0)`;
+      pendingY = Math.sign(dy) * Math.min(96, Math.abs(dy) * 0.45);
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          stack.style.transform = `translate3d(0, ${pendingY}px, 0)`;
+        });
+      }
     };
 
     const onTouchEnd = () => {
@@ -709,6 +745,7 @@ function useScrollBounce() {
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('touchcancel', onTouchEnd);
+      cancelFrame();
       window.clearTimeout(resetTimer);
       stack.style.transform = 'translate3d(0, 0, 0)';
       stack.style.willChange = 'auto';
@@ -737,8 +774,8 @@ function ThemeButton({ theme, onCycle, title }) {
   );
 }
 
-function FluidBackground({ resolvedTheme, reduced, fine, focused, interacting, running }) {
-  const useWebGL = !reduced;
+function FluidBackground({ resolvedTheme, reduced, fine, focused, interacting, running, ready }) {
+  const useWebGL = !reduced && ready;
   const lowPower = !fine;
 
   return (
@@ -795,26 +832,26 @@ function ArticleImage({ block }) {
   const animationRef = useRef(null);
   const reduced = usePrefersReducedMotion();
 
+  const stopAnimation = () => {
+    animationRef.current?.cancel();
+    animationRef.current = null;
+  };
+
   const closeImage = () => {
     if (!visible) return;
     const image = lightboxImageRef.current;
     const thumb = thumbRef.current;
     if (reduced || !image || !thumb) {
+      stopAnimation();
       setVisible(false);
       setOpen(false);
       return;
     }
 
-    animationRef.current?.kill();
-    const current = {
-      x: Number(gsap.getProperty(image, 'x')) || 0,
-      y: Number(gsap.getProperty(image, 'y')) || 0,
-      scaleX: Number(gsap.getProperty(image, 'scaleX')) || 1,
-      scaleY: Number(gsap.getProperty(image, 'scaleY')) || 1,
-    };
-    gsap.set(image, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    const currentTransform = getComputedStyle(image).transform;
+    stopAnimation();
+    image.style.transformOrigin = 'top left';
     const base = image.getBoundingClientRect();
-    gsap.set(image, current);
     const target = thumb.getBoundingClientRect();
     if (!base.width || !base.height) {
       setVisible(false);
@@ -822,24 +859,34 @@ function ArticleImage({ block }) {
       return;
     }
 
+    const endTransform = `translate3d(${target.left - base.left}px, ${target.top - base.top}px, 0) scale(${target.width / base.width}, ${target.height / base.height})`;
     setVisible(false);
-    animationRef.current = gsap.to(image, {
-      x: target.left - base.left,
-      y: target.top - base.top,
-      scaleX: target.width / base.width,
-      scaleY: target.height / base.height,
-      duration: 0.42,
-      ease: 'power3.inOut',
-      onComplete: () => {
-        animationRef.current = null;
-        setOpen(false);
+    const animation = image.animate(
+      [
+        { transform: currentTransform === 'none' ? 'none' : currentTransform },
+        { transform: endTransform },
+      ],
+      {
+        duration: 420,
+        easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        fill: 'forwards',
       },
-    });
+    );
+    animationRef.current = animation;
+    animation.finished
+      .then(() => {
+        if (animationRef.current !== animation) return;
+        animationRef.current = null;
+        image.style.transform = '';
+        image.style.transformOrigin = '';
+        setOpen(false);
+      })
+      .catch(() => {});
   };
 
   const openImage = () => {
     if (!thumbRef.current) return;
-    animationRef.current?.kill();
+    stopAnimation();
     setOpen(true);
   };
 
@@ -850,30 +897,34 @@ function ArticleImage({ block }) {
     setVisible(true);
     if (reduced || !image || !thumb) return undefined;
 
+    stopAnimation();
+    image.style.transformOrigin = 'top left';
     const base = image.getBoundingClientRect();
     const target = thumb.getBoundingClientRect();
     if (!base.width || !base.height) return undefined;
-    const start = {
-      x: target.left - base.left,
-      y: target.top - base.top,
-      scaleX: target.width / base.width,
-      scaleY: target.height / base.height,
-    };
-    gsap.killTweensOf(image);
-    gsap.set(image, { ...start, transformOrigin: 'top left' });
-    animationRef.current = gsap.to(image, {
-      x: 0,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 0.46,
-      ease: 'power3.out',
-      onComplete: () => {
-        animationRef.current = null;
-      },
-    });
 
-    return () => animationRef.current?.kill();
+    const startTransform = `translate3d(${target.left - base.left}px, ${target.top - base.top}px, 0) scale(${target.width / base.width}, ${target.height / base.height})`;
+    const animation = image.animate(
+      [{ transform: startTransform }, { transform: 'none' }],
+      {
+        duration: 460,
+        easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        fill: 'forwards',
+      },
+    );
+    animationRef.current = animation;
+    animation.finished
+      .then(() => {
+        if (animationRef.current !== animation) return;
+        animationRef.current = null;
+        image.style.transform = '';
+        image.style.transformOrigin = '';
+      })
+      .catch(() => {});
+
+    return () => {
+      if (animationRef.current === animation) stopAnimation();
+    };
   }, [open, reduced]);
 
   useEffect(() => {
@@ -895,7 +946,7 @@ function ArticleImage({ block }) {
     };
   }, [open]);
 
-  useEffect(() => () => animationRef.current?.kill(), []);
+  useEffect(() => () => stopAnimation(), []);
 
   if (!block.src) return null;
 
@@ -1028,6 +1079,15 @@ const hostOf = (href) => {
   }
 };
 
+function HeroTitlePending() {
+  return (
+    <div className="hero__title-pending" aria-hidden="true">
+      <span>{site.headlineLead}</span>
+      <strong>{site.headlineBrand}</strong>
+    </div>
+  );
+}
+
 function HomePage({ ready }) {
   return (
     <>
@@ -1036,43 +1096,42 @@ function HomePage({ ready }) {
         <div className="hero__copy">
           <p className="hero__kicker">{site.latinName}</p>
           {ready ? (
-            <div className="hero__title" aria-hidden="true">
-              <StrokeText
-                className="hero__title-line hero__title-line--lead"
-                text={site.headlineLead}
-                strokeColor="var(--accent)"
-                fillColor="var(--ink)"
-                strokeWidth={1.2}
-                drawDuration={1.45}
-                fillDelay={0.35}
-                stagger={0.05}
-                ease="expo.out"
-                fillEase="expo.out"
-                fontSize={54}
-                fontWeight={800}
-                letterSpacing={0}
-              />
-              <StrokeText
-                className="hero__title-line hero__title-line--brand"
-                text={site.headlineBrand}
-                strokeColor="var(--accent)"
-                fillColor="var(--accent)"
-                strokeWidth={1.3}
-                drawDuration={1.7}
-                fillDelay={0.4}
-                stagger={0.06}
-                ease="expo.out"
-                fillEase="expo.out"
-                fontSize={80}
-                fontWeight={800}
-                letterSpacing={0}
-              />
-            </div>
+            <Suspense fallback={<HeroTitlePending />}>
+              <div className="hero__title" aria-hidden="true">
+                <StrokeText
+                  className="hero__title-line hero__title-line--lead"
+                  text={site.headlineLead}
+                  strokeColor="var(--accent)"
+                  fillColor="var(--ink)"
+                  strokeWidth={1.2}
+                  drawDuration={1.45}
+                  fillDelay={0.35}
+                  stagger={0.05}
+                  ease="expo.out"
+                  fillEase="expo.out"
+                  fontSize={54}
+                  fontWeight={800}
+                  letterSpacing={0}
+                />
+                <StrokeText
+                  className="hero__title-line hero__title-line--brand"
+                  text={site.headlineBrand}
+                  strokeColor="var(--accent)"
+                  fillColor="var(--accent)"
+                  strokeWidth={1.3}
+                  drawDuration={1.7}
+                  fillDelay={0.4}
+                  stagger={0.06}
+                  ease="expo.out"
+                  fillEase="expo.out"
+                  fontSize={80}
+                  fontWeight={800}
+                  letterSpacing={0}
+                />
+              </div>
+            </Suspense>
           ) : (
-            <div className="hero__title-pending" aria-hidden="true">
-              <span>{site.headlineLead}</span>
-              <strong>{site.headlineBrand}</strong>
-            </div>
+            <HeroTitlePending />
           )}
           <p className="hero__intro">{site.intro}</p>
         </div>
@@ -1332,6 +1391,7 @@ export default function App() {
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
   const [ready, setReady] = useState(false);
+  const [backgroundReady, setBackgroundReady] = useState(() => fine);
   const [backgroundActive, setBackgroundActive] = useState(true);
   const [windowFocused, setWindowFocused] = useState(() => document.hasFocus?.() ?? true);
   const [interacting, setInteracting] = useState(true);
@@ -1469,17 +1529,52 @@ export default function App() {
   }, [reduced]);
 
   useEffect(() => {
+    if (backgroundReady || !ready) return undefined;
+    const schedule = window.requestIdleCallback?.bind(window) || ((callback) => window.setTimeout(callback, 200));
+    const cancel = window.cancelIdleCallback?.bind(window) || window.clearTimeout;
+    const idle = schedule(() => setBackgroundReady(true), { timeout: 1200 });
+    return () => cancel(idle);
+  }, [backgroundReady, ready]);
+
+  useEffect(() => {
+    if (fine) import('./components/reactbits/StrokeText.jsx').catch(() => {});
+  }, [fine]);
+
+  useEffect(() => {
     let resumeTimer;
-    const pauseWhileScrolling = () => {
+    const isMobileGesture = () =>
+      window.matchMedia?.('(max-width: 760px)').matches ||
+      window.matchMedia?.('(pointer: coarse)').matches;
+    const pause = () => {
       setBackgroundActive(false);
+      window.clearTimeout(resumeTimer);
+    };
+    const resume = () => {
       window.clearTimeout(resumeTimer);
       resumeTimer = window.setTimeout(() => setBackgroundActive(true), 180);
     };
+    const pauseWhileScrolling = () => {
+      pause();
+      resume();
+    };
+    const onPointerDown = () => {
+      if (isMobileGesture()) pause();
+    };
+    const onPointerUp = () => {
+      if (isMobileGesture()) resume();
+    };
+
     window.addEventListener('scroll', pauseWhileScrolling, { passive: true });
     window.addEventListener('touchmove', pauseWhileScrolling, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('pointerup', onPointerUp, { passive: true });
+    window.addEventListener('pointercancel', onPointerUp, { passive: true });
     return () => {
       window.removeEventListener('scroll', pauseWhileScrolling);
       window.removeEventListener('touchmove', pauseWhileScrolling);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
       window.clearTimeout(resumeTimer);
     };
   }, []);
@@ -1625,9 +1720,10 @@ export default function App() {
         focused={windowFocused}
         interacting={interacting}
         running={backgroundActive}
+        ready={backgroundReady}
       />
     ),
-    [theme, reduced, fine, windowFocused, interacting, backgroundActive],
+    [theme, reduced, fine, windowFocused, interacting, backgroundActive, backgroundReady],
   );
 
   return (

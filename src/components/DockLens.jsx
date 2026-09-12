@@ -8,6 +8,9 @@ const DRAG_THRESHOLD = 10;
 export default function DockLens({ active, items, reduced }) {
   const lensRef = useRef(null);
   const wakeRef = useRef(() => {});
+  const centersRef = useRef(null);
+  const linksRef = useRef([]);
+  const dockRectRef = useRef(null);
   const st = useRef({
     x: 0,
     tx: 0,
@@ -23,12 +26,15 @@ export default function DockLens({ active, items, reduced }) {
   });
 
   const centers = () => {
+    if (centersRef.current) return centersRef.current;
     const dock = lensRef.current?.parentElement?.closest?.('.mobile-dock') || lensRef.current?.parentElement;
     if (!dock) return [];
-    return Array.from(dock.querySelectorAll('.dock-link')).map((el) => ({
+    linksRef.current = Array.from(dock.querySelectorAll('.dock-link'));
+    centersRef.current = linksRef.current.map((el) => ({
       x: el.offsetLeft + el.offsetWidth / 2,
       key: el.getAttribute('data-nav'),
     }));
+    return centersRef.current;
   };
 
   const activeCenter = () => {
@@ -130,6 +136,9 @@ export default function DockLens({ active, items, reduced }) {
   useLayoutEffect(() => {
     const dock = lensRef.current?.parentElement?.closest?.('.mobile-dock') || lensRef.current?.parentElement;
     if (!dock) return undefined;
+    centersRef.current = null;
+    linksRef.current = [];
+    dockRectRef.current = null;
 
     const onDown = (event) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -139,7 +148,10 @@ export default function DockLens({ active, items, reduced }) {
       s.wasDrag = false;
       s.startX = event.clientX;
       s.ts = 1.14;
-      const rel = event.clientX - dock.getBoundingClientRect().left;
+      dockRectRef.current = dock.getBoundingClientRect();
+      centersRef.current = null;
+      linksRef.current = [];
+      const rel = event.clientX - dockRectRef.current.left;
       const n = nearest(rel);
       if (n) s.tx = n.x;
       wakeRef.current();
@@ -159,12 +171,12 @@ export default function DockLens({ active, items, reduced }) {
         }
       }
       if (s.dragging) {
-        const rel = event.clientX - dock.getBoundingClientRect().left;
+        const rel = event.clientX - (dockRectRef.current?.left ?? dock.getBoundingClientRect().left);
         s.x = s.tx = rel;
         s.vx = 0;
         s.ts = 1.12;
         const target = nearest(rel);
-        dock.querySelectorAll('.dock-link').forEach((el) => {
+        linksRef.current.forEach((el) => {
           el.classList.toggle('is-hover', !!target && el.getAttribute('data-nav') === target.key);
         });
         wakeRef.current();
@@ -178,9 +190,9 @@ export default function DockLens({ active, items, reduced }) {
       s.down = false;
       s.dragging = false;
       s.ts = 1;
-      dock.querySelectorAll('.dock-link').forEach((el) => el.classList.remove('is-hover'));
+      linksRef.current.forEach((el) => el.classList.remove('is-hover'));
       if (wasDragging) {
-        const rel = event.clientX - dock.getBoundingClientRect().left;
+        const rel = event.clientX - (dockRectRef.current?.left ?? dock.getBoundingClientRect().left);
         const target = nearest(rel);
         if (target && target.key !== active) {
           s.tx = target.x;
@@ -191,6 +203,7 @@ export default function DockLens({ active, items, reduced }) {
       } else {
         s.tx = activeCenter();
       }
+      dockRectRef.current = null;
       wakeRef.current();
       try {
         dock.releasePointerCapture(event.pointerId);
@@ -204,8 +217,9 @@ export default function DockLens({ active, items, reduced }) {
       s.down = false;
       s.dragging = false;
       s.ts = 1;
-      dock.querySelectorAll('.dock-link').forEach((el) => el.classList.remove('is-hover'));
+      linksRef.current.forEach((el) => el.classList.remove('is-hover'));
       s.tx = activeCenter();
+      dockRectRef.current = null;
       wakeRef.current();
     };
 
@@ -218,15 +232,18 @@ export default function DockLens({ active, items, reduced }) {
     };
 
     const ro = new ResizeObserver(() => {
+      centersRef.current = null;
+      linksRef.current = [];
+      dockRectRef.current = null;
       if (!st.current.dragging) snapToActive();
     });
     ro.observe(dock);
     window.addEventListener('resize', onCancel);
 
-    dock.addEventListener('pointerdown', onDown);
-    dock.addEventListener('pointermove', onMove);
-    dock.addEventListener('pointerup', onUp);
-    dock.addEventListener('pointercancel', onCancel);
+    dock.addEventListener('pointerdown', onDown, { passive: true });
+    dock.addEventListener('pointermove', onMove, { passive: true });
+    dock.addEventListener('pointerup', onUp, { passive: true });
+    dock.addEventListener('pointercancel', onCancel, { passive: true });
     dock.addEventListener('click', onClickCapture, true);
 
     return () => {

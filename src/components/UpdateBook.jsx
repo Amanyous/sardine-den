@@ -28,7 +28,6 @@ export default function UpdateBook({ entries = [] }) {
   const [index, setIndex] = useState(0);
   const [moving, setMoving] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
   const gestureRef = useRef(null);
   const dragOffsetRef = useRef(0);
   const wheelAccumRef = useRef(0);
@@ -36,12 +35,20 @@ export default function UpdateBook({ entries = [] }) {
   const sheetRefs = useRef([]);
   const indexRef = useRef(0);
   const movingTimerRef = useRef(null);
+  const moveFrameRef = useRef(0);
+  const pendingXRef = useRef(0);
   const count = entries.length;
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  const setBookDrag = (offset) => {
+    dragOffsetRef.current = offset;
+    stageRef.current?.style.setProperty('--book-drag', `${offset}px`);
+  };
+
   const resetDrag = () => {
-    dragOffsetRef.current = 0;
-    setDragOffset(0);
+    if (moveFrameRef.current) cancelAnimationFrame(moveFrameRef.current);
+    moveFrameRef.current = 0;
+    setBookDrag(0);
     setDragging(false);
   };
 
@@ -86,7 +93,26 @@ export default function UpdateBook({ entries = [] }) {
     beginSnap(indexRef.current + direction);
   };
 
-  useEffect(() => () => window.clearTimeout(movingTimerRef.current), []);
+  const scheduleBookDrag = (clientX) => {
+    pendingXRef.current = clientX;
+    if (moveFrameRef.current) return;
+    moveFrameRef.current = requestAnimationFrame(() => {
+      moveFrameRef.current = 0;
+      const gesture = gestureRef.current;
+      if (!gesture || gesture.locked !== 'horizontal') return;
+      const now = performance.now();
+      const elapsed = Math.max(1, now - gesture.lastTime);
+      gesture.velocity = (pendingXRef.current - gesture.lastX) / elapsed;
+      gesture.lastX = pendingXRef.current;
+      gesture.lastTime = now;
+      setBookDrag(resistDrag(pendingXRef.current - gesture.startX));
+    });
+  };
+
+  useEffect(() => () => {
+    window.clearTimeout(movingTimerRef.current);
+    if (moveFrameRef.current) cancelAnimationFrame(moveFrameRef.current);
+  }, []);
 
   if (!count) return null;
 
@@ -156,14 +182,7 @@ export default function UpdateBook({ entries = [] }) {
 
     if (gesture.locked === 'horizontal') {
       if (event.cancelable) event.preventDefault();
-      const now = performance.now();
-      const elapsed = Math.max(1, now - gesture.lastTime);
-      gesture.velocity = (event.clientX - gesture.lastX) / elapsed;
-      gesture.lastX = event.clientX;
-      gesture.lastTime = now;
-      const nextOffset = resistDrag(dx);
-      dragOffsetRef.current = nextOffset;
-      setDragOffset(nextOffset);
+      scheduleBookDrag(event.clientX);
     }
   };
 
@@ -172,6 +191,13 @@ export default function UpdateBook({ entries = [] }) {
     gestureRef.current = null;
     if (!gesture || event.pointerId !== gesture.id) return;
     if (gesture.locked !== 'horizontal') return;
+    if (moveFrameRef.current) {
+      cancelAnimationFrame(moveFrameRef.current);
+      moveFrameRef.current = 0;
+      const finalElapsed = Math.max(1, performance.now() - gesture.lastTime);
+      gesture.velocity = (event.clientX - gesture.lastX) / finalElapsed;
+      setBookDrag(resistDrag(event.clientX - gesture.startX));
+    }
     const dx = event.clientX - gesture.startX;
     const idle = performance.now() - gesture.lastTime;
     const velocity = idle > 120 ? 0 : gesture.velocity;
@@ -222,10 +248,10 @@ export default function UpdateBook({ entries = [] }) {
         {entries.map((entry, entryIndex) => {
           const delta = entryIndex - index;
           const distance = Math.abs(delta);
+          if (distance > 1) return null;
           const style = {
-            opacity: distance > 1 ? 0 : 1,
             pointerEvents: entryIndex === index ? 'auto' : 'none',
-            transform: `translate3d(calc(${delta * 112}% + ${dragOffset}px), 0, 0) rotateY(${delta * -9}deg) scale(${Math.max(
+            transform: `translate3d(calc(${delta * 112}% + var(--book-drag, 0px)), 0, 0) rotateY(${delta * -9}deg) scale(${Math.max(
               0.92,
               1 - distance * 0.03,
             )})`,

@@ -638,6 +638,11 @@ p {
   will-change: transform;
 }
 
+.site-main.is-dragging-pages .page-track,
+.site-main.is-dragging-pages .page-pane {
+  will-change: transform;
+}
+
 .site-main.is-swiping .page-pane {
   transition: transform 260ms var(--ease-hig);
   will-change: transform;
@@ -2040,6 +2045,21 @@ p {
 /* Mobile perf: skip painting offscreen glass cards and drop the SVG
    displacement on large cards, where per-frame refraction costs the most. */
 @media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  .page-pane {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: auto 600px;
+  }
+
+  .about-updates,
+  .article-list,
+  .article__card,
+  .device-list {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: auto 600px;
+  }
+
   .device-tile,
   .favorite-tile,
   .model-row,
