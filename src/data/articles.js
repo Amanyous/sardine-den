@@ -29,6 +29,7 @@ export const articles = [
       {
         type: 'img',
         src: asset('/articles/image-studio-workspace.png'),
+        thumb: asset('/articles/thumbs/image-studio-workspace.jpg'),
         alt: 'Image Studio 工作台界面',
         caption: '工作台：左侧写提示词和参数，中间是画布，右侧是当前上游与生成历史。',
       },
@@ -43,6 +44,7 @@ export const articles = [
       {
         type: 'img',
         src: asset('/articles/image-studio-config.png'),
+        thumb: asset('/articles/thumbs/image-studio-config.jpg'),
         alt: 'Image Studio 上游配置面板',
         caption: '上游配置：选好 API 形态，填 BASE_URL、API Key 与模型 ID，保存前先测一次连接。',
       },

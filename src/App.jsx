@@ -1,5 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
+import { gsap } from 'gsap';
 import {
   ArrowLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Sun,
   UserRound,
+  X,
 } from 'lucide-react';
 import GlassIcons from './components/reactbits/GlassIcons.jsx';
 import LiquidSurface from './components/LiquidSurface.jsx';
@@ -784,6 +786,183 @@ function EmptyState({ icon: Icon, title, lead }) {
   );
 }
 
+function ArticleImage({ block }) {
+  const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const thumbRef = useRef(null);
+  const lightboxImageRef = useRef(null);
+  const closeRef = useRef(null);
+  const animationRef = useRef(null);
+  const reduced = usePrefersReducedMotion();
+
+  const closeImage = () => {
+    if (!visible) return;
+    const image = lightboxImageRef.current;
+    const thumb = thumbRef.current;
+    if (reduced || !image || !thumb) {
+      setVisible(false);
+      setOpen(false);
+      return;
+    }
+
+    animationRef.current?.kill();
+    const current = {
+      x: Number(gsap.getProperty(image, 'x')) || 0,
+      y: Number(gsap.getProperty(image, 'y')) || 0,
+      scaleX: Number(gsap.getProperty(image, 'scaleX')) || 1,
+      scaleY: Number(gsap.getProperty(image, 'scaleY')) || 1,
+    };
+    gsap.set(image, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    const base = image.getBoundingClientRect();
+    gsap.set(image, current);
+    const target = thumb.getBoundingClientRect();
+    if (!base.width || !base.height) {
+      setVisible(false);
+      setOpen(false);
+      return;
+    }
+
+    setVisible(false);
+    animationRef.current = gsap.to(image, {
+      x: target.left - base.left,
+      y: target.top - base.top,
+      scaleX: target.width / base.width,
+      scaleY: target.height / base.height,
+      duration: 0.42,
+      ease: 'power3.inOut',
+      onComplete: () => {
+        animationRef.current = null;
+        setOpen(false);
+      },
+    });
+  };
+
+  const openImage = () => {
+    if (!thumbRef.current) return;
+    animationRef.current?.kill();
+    setOpen(true);
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const image = lightboxImageRef.current;
+    const thumb = thumbRef.current;
+    setVisible(true);
+    if (reduced || !image || !thumb) return undefined;
+
+    const base = image.getBoundingClientRect();
+    const target = thumb.getBoundingClientRect();
+    if (!base.width || !base.height) return undefined;
+    const start = {
+      x: target.left - base.left,
+      y: target.top - base.top,
+      scaleX: target.width / base.width,
+      scaleY: target.height / base.height,
+    };
+    gsap.killTweensOf(image);
+    gsap.set(image, { ...start, transformOrigin: 'top left' });
+    animationRef.current = gsap.to(image, {
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.46,
+      ease: 'power3.out',
+      onComplete: () => {
+        animationRef.current = null;
+      },
+    });
+
+    return () => animationRef.current?.kill();
+  }, [open, reduced]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.activeElement;
+    const previousOverflow = document.documentElement.style.overflow;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') closeImage();
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.documentElement.style.overflow = 'hidden';
+    closeRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.documentElement.style.overflow = previousOverflow;
+      previous?.focus?.({ preventScroll: true });
+    };
+  }, [open]);
+
+  useEffect(() => () => animationRef.current?.kill(), []);
+
+  if (!block.src) return null;
+
+  return (
+    <>
+      <figure className="article__figure">
+        <button
+          className={`article__thumb ${open ? 'is-vt-hidden' : ''}`}
+          type="button"
+          onClick={openImage}
+          aria-label={`查看原图：${block.alt || '文章图片'}`}
+          aria-haspopup="dialog"
+        >
+          <img
+            ref={thumbRef}
+            className="article__img"
+            src={block.thumb || block.src}
+            alt={block.alt}
+            width="1600"
+            height="1000"
+            loading="lazy"
+            decoding="async"
+          />
+        </button>
+        {block.caption ? <figcaption className="article__caption">{block.caption}</figcaption> : null}
+      </figure>
+
+      {open
+        ? createPortal(
+            <div
+              className={`article-lightbox ${visible ? 'is-visible' : ''}`}
+              role="dialog"
+              aria-modal="true"
+              aria-label="原图预览"
+              onClick={closeImage}
+            >
+              <div className="article-lightbox__inner" onClick={(event) => event.stopPropagation()}>
+                <div className="article-lightbox__viewport">
+                  <img
+                    ref={lightboxImageRef}
+                    className="article-lightbox__image"
+                    src={block.src}
+                    alt={block.alt}
+                    width="1600"
+                    height="1000"
+                    draggable="false"
+                  />
+                </div>
+                <button
+                  ref={closeRef}
+                  className="theme-toggle article-lightbox__close"
+                  type="button"
+                  onClick={closeImage}
+                  aria-label="关闭原图"
+                >
+                  <span className="theme-toggle__glass" aria-hidden="true" />
+                  <X size={20} strokeWidth={2} aria-hidden="true" />
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
 function ArticleBlock({ block }) {
   switch (block.type) {
     case 'h2':
@@ -801,20 +980,7 @@ function ArticleBlock({ block }) {
     case 'note':
       return <aside className="article__note">{block.text}</aside>;
     case 'img':
-      return (
-        <figure className="article__figure">
-          <img
-            className="article__img"
-            src={block.src}
-            alt={block.alt}
-            width="1600"
-            height="1000"
-            loading="lazy"
-            decoding="async"
-          />
-          {block.caption ? <figcaption className="article__caption">{block.caption}</figcaption> : null}
-        </figure>
-      );
+      return <ArticleImage block={block} />;
     default:
       return null;
   }
