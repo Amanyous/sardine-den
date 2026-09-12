@@ -36,7 +36,6 @@ export default function UpdateBook({ entries = [] }) {
   const sheetRefs = useRef([]);
   const indexRef = useRef(0);
   const movingTimerRef = useRef(null);
-  const lockedRef = useRef(false);
   const count = entries.length;
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -67,15 +66,12 @@ export default function UpdateBook({ entries = [] }) {
     }
 
     if (reduced) {
-      lockedRef.current = false;
       setMoving(false);
       return;
     }
 
-    lockedRef.current = true;
     setMoving(true);
     movingTimerRef.current = window.setTimeout(() => {
-      lockedRef.current = false;
       setMoving(false);
     }, SNAP_DURATION + 40);
   };
@@ -95,7 +91,6 @@ export default function UpdateBook({ entries = [] }) {
   if (!count) return null;
 
   const go = (direction) => {
-    if (lockedRef.current) return;
     const next = Math.min(count - 1, Math.max(0, indexRef.current + direction));
     if (next !== indexRef.current) beginSnap(next);
   };
@@ -108,7 +103,6 @@ export default function UpdateBook({ entries = [] }) {
   };
 
   const onPointerDown = (event) => {
-    if (lockedRef.current) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     resetDrag();
     gestureRef.current = {
@@ -124,7 +118,7 @@ export default function UpdateBook({ entries = [] }) {
 
   const onPointerMove = (event) => {
     const gesture = gestureRef.current;
-    if (!gesture || event.pointerId !== gesture.id || lockedRef.current) return;
+    if (!gesture || event.pointerId !== gesture.id) return;
     const dx = event.clientX - gesture.startX;
     const dy = event.clientY - gesture.startY;
     const absX = Math.abs(dx);
@@ -195,7 +189,6 @@ export default function UpdateBook({ entries = [] }) {
   };
 
   const onWheel = (event) => {
-    if (lockedRef.current) return;
     const absX = Math.abs(event.deltaX);
     const absY = Math.abs(event.deltaY);
     if (absX < absY * 1.4 || absX < 8) return;
