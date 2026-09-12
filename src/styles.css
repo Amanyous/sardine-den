@@ -1,8 +1,9 @@
 /* finesse · register=brand · soul=soft-liquid-tech · palette=pink-light/deep-blue-dark · engine=LiquidEther */
 
 :root {
-  color-scheme: light;
+  color-scheme: only light;
   --ease-glass: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-hig: cubic-bezier(0.25, 0.1, 0.25, 1);
   --bg: #fff1f6;
   --bg-deep: #ffe2ed;
   --ink: #24111b;
@@ -17,6 +18,9 @@
   --accent-2: #276fca;
   --on-accent: #fff7fa;
   --shadow-color: 74, 26, 49;
+  --page-duration: 420ms;
+  --page-out-x: -10vw;
+  --page-in-x: 10vw;
 }
 
 :root[data-theme='dark'] {
@@ -51,11 +55,87 @@
 }
 
 ::view-transition-new(root) {
-  animation: theme-reveal 1100ms var(--ease-glass) both;
+  animation-name: var(--theme-transition-name, theme-reveal);
+  animation-duration: 1100ms;
+  animation-timing-function: var(--ease-glass);
+  animation-fill-mode: both;
+}
+
+:root[data-nav-direction] {
+  --theme-transition-name: none;
+}
+
+:root[data-article-direction] {
+  --theme-transition-name: none;
+  --page-duration: 240ms;
+  --page-out-x: 0px;
+  --page-in-x: 0px;
+}
+
+:root[data-nav-direction='back'] {
+  --page-out-x: 10vw;
+  --page-in-x: -10vw;
+}
+
+:root[data-article-direction] .article-row-glass.is-vt-source,
+:root[data-article-direction] .article__card.is-vt-target {
+  view-transition-name: article-hero;
+}
+
+::view-transition-group(article-hero) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-hig);
+}
+
+::view-transition-old(page-pane),
+::view-transition-new(page-pane) {
+  animation-duration: var(--page-duration);
+  animation-timing-function: var(--ease-hig);
+  animation-fill-mode: both;
+}
+
+::view-transition-old(page-pane) {
+  animation-name: page-pane-out;
+}
+
+::view-transition-new(page-pane) {
+  animation-name: page-pane-in;
+}
+
+@keyframes page-pane-out {
+  to {
+    opacity: 0;
+    transform: translate3d(var(--page-out-x), 0, 0) scale(0.985);
+  }
+}
+
+@keyframes page-pane-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--page-in-x), 0, 0) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .site-main.is-swiping .page-pane {
+    transition: none;
+  }
+
   ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+
+  ::view-transition-old(page-pane),
+  ::view-transition-new(page-pane) {
+    animation-duration: 1ms;
+  }
+
+  ::view-transition-group(article-hero) {
     animation-duration: 1ms;
   }
 }
@@ -175,6 +255,24 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 200;
+  top: 12px;
+  left: 12px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  transform: translateY(calc(-100% - 24px));
+  transition: transform 0.18s var(--ease-hig);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 html,
@@ -461,8 +559,8 @@ p {
     inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 20%, rgba(255, 255, 255, 0.14)),
     0 8px 22px rgba(var(--shadow-color), 0.16);
   transition:
-    transform 0.36s var(--ease-glass),
-    width 0.36s var(--ease-glass),
+    transform 0.42s var(--ease-hig),
+    width 0.42s var(--ease-hig),
     opacity 0.2s ease;
 }
 
@@ -523,6 +621,10 @@ p {
   touch-action: pan-y;
 }
 
+.site-main:focus {
+  outline: none;
+}
+
 .site-main * {
   touch-action: pan-y;
 }
@@ -533,6 +635,11 @@ p {
 }
 
 .site-main.is-swiping .page-track {
+  will-change: transform;
+}
+
+.site-main.is-swiping .page-pane {
+  transition: transform 260ms var(--ease-hig);
   will-change: transform;
 }
 
@@ -550,16 +657,17 @@ p {
 }
 
 .page-pane[data-slot='prev'] {
-  transform: translateX(-100%);
+  transform: translate3d(-100%, 0, 0) scale(calc(0.985 + 0.015 * var(--swipe-progress, 0)));
 }
 
 .page-pane[data-slot='next'] {
-  transform: translateX(100%);
+  transform: translate3d(100%, 0, 0) scale(calc(0.985 + 0.015 * var(--swipe-progress, 0)));
 }
 
 .page-pane.is-active {
   position: relative;
-  transform: none;
+  transform: scale(calc(1 - 0.015 * var(--swipe-progress, 0)));
+  view-transition-name: page-pane;
 }
 
 .hero {
@@ -705,6 +813,43 @@ p {
   transform: translateY(-3px);
 }
 
+@media (min-width: 761px) {
+  .favorite-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-areas:
+      'one one one one one one one two two two two two'
+      'three three three three three four four four four four four four';
+  }
+
+  .favorite-tile:nth-child(1) {
+    grid-area: one;
+  }
+
+  .favorite-tile:nth-child(2) {
+    grid-area: two;
+    align-self: end;
+  }
+
+  .favorite-tile:nth-child(3) {
+    grid-area: three;
+    align-self: end;
+  }
+
+  .favorite-tile:nth-child(4) {
+    grid-area: four;
+  }
+
+  .favorite-tile:nth-child(1) .favorite-tile__link,
+  .favorite-tile:nth-child(4) .favorite-tile__link {
+    min-height: 212px;
+  }
+
+  .favorite-tile:nth-child(2) .favorite-tile__link,
+  .favorite-tile:nth-child(3) .favorite-tile__link {
+    min-height: 168px;
+  }
+}
+
 .empty-glass {
   min-height: 240px;
   margin-top: 28px;
@@ -746,6 +891,16 @@ p {
   margin: 0;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.not-found__link {
+  display: table;
+  margin: 20px auto 0;
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
 }
 
 .page {
@@ -862,9 +1017,15 @@ p {
   min-height: min(390px, 58vh);
   overflow: hidden;
   perspective: 1600px;
+  cursor: grab;
+  overscroll-behavior-x: none;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.update-book.is-dragging .update-book__stage {
+  cursor: grabbing;
 }
 
 .update-book__sheet {
@@ -882,16 +1043,19 @@ p {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.26);
   backface-visibility: hidden;
-  overscroll-behavior: contain;
   transition:
-    transform 0.62s var(--ease-glass),
-    opacity 0.35s ease;
+    transform 0.34s var(--ease-hig),
+    opacity 0.2s ease;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 .update-book.is-moving .update-book__sheet {
   will-change: transform;
+}
+
+.update-book.is-dragging .update-book__sheet {
+  transition: opacity 0.18s ease;
 }
 
 .update-book__sheet::-webkit-scrollbar {
@@ -1516,8 +1680,8 @@ p {
     inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 20%, rgba(255, 255, 255, 0.14)),
     0 8px 22px rgba(var(--shadow-color), 0.16);
   transition:
-    transform 0.3s var(--ease-glass),
-    width 0.3s var(--ease-glass),
+    transform 0.36s var(--ease-hig),
+    width 0.36s var(--ease-hig),
     opacity 0.2s ease;
 }
 

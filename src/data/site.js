@@ -50,6 +50,8 @@ export const devices = [
     role: '轻巧顺手的工作本',
     specs: 'Retina 屏 · Touch Bar · Touch ID',
     image: asset('/devices/macbook-pro-2019.jpg'),
+    width: 452,
+    height: 420,
     source: 'https://support.apple.com/zh-cn/111945',
   },
   {
@@ -60,6 +62,8 @@ export const devices = [
     role: 'Windows 高性能本',
     specs: '16" 2.5K · 240Hz · 100% DCI-P3',
     image: asset('/devices/msi-shenying16.png'),
+    width: 1000,
+    height: 800,
     source: 'https://www.msi.cn/Laptop/Crosshair-16-HX-D14VX/Gallery',
   },
   {
@@ -70,6 +74,8 @@ export const devices = [
     role: '小屏手感旗舰',
     specs: '6.28" 120Hz · 徕卡影像 · 67W',
     image: asset('/devices/xiaomi-12s.jpg'),
+    width: 1024,
+    height: 768,
     source: 'https://www.mi.com/mi12s',
   },
   {
@@ -80,6 +86,8 @@ export const devices = [
     role: '折叠随身小屏',
     specs: '6.7" 柔性屏 · 3.4" 外屏',
     image: asset('/devices/samsung-z-flip5.jpg'),
+    width: 1000,
+    height: 563,
     source: 'https://www.samsung.com/us/smartphones/galaxy-z-flip5/',
   },
 ];
@@ -121,6 +129,21 @@ export const playerTrack = {
 };
 
 export const changelog = [
+  {
+    date: '2026-09-12',
+    version: '1.7.0',
+    title: '转场、手势与细节完善',
+    items: [
+      '统一桌面端与移动端切页转场，加入方向位移、景深回正与导航胶囊同步',
+      '文章卡片支持共享元素展开，新增可分享详情链接、返回列表与 404 页面',
+      '重做更新日志手势：支持快速轻扫、稳定轴锁、340ms 吸附、横向滚轮及滚到底后继续滚页',
+      '移动端滑页只挂载当前页与目标页，避免切页时出现多余页面',
+      '首页收藏与推荐改为宽窄交替的编辑式错位布局',
+      '适配 iPhone 安全区并阻止浏览器夜间模式强制变暗',
+      '优化无障碍：跳过导航、当前页语义、路由焦点管理、音乐弹层键盘与焦点',
+      '更新 SEO 与分享元信息，补齐媒体尺寸、音频错误提示与时长保护',
+    ],
+  },
   {
     date: '2026-09-10',
     version: '1.6.0',

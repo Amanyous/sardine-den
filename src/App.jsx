@@ -1,4 +1,5 @@
 import { lazy, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   ArrowLeft,
   ChevronRight,
@@ -41,6 +42,8 @@ const navItems = [
   { key: 'articles', label: '文章', href: '#/articles', icon: FileText },
   { key: 'about', label: '关于', href: '#/about', icon: UserRound },
 ];
+
+const routeHash = (key) => (key === 'home' ? '#/' : `#/${key}`);
 
 const contactItems = [
   {
@@ -421,22 +424,46 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
 function useRoute() {
   const readRoute = () => {
     const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0];
-    return ROUTES.includes(raw) ? raw : 'home';
+    const [routeName, articleId] = raw.split('/');
+    const known = ROUTES.includes(routeName);
+    return {
+      route: known ? routeName : 'home',
+      articleId: known && routeName === 'articles' && articleId ? decodeURIComponent(articleId) : null,
+      notFound: Boolean(raw) && !known,
+    };
   };
 
-  const [route, setRoute] = useState(readRoute);
+  const [location, setLocation] = useState(readRoute);
+
+  const navigate = (nextRoute, nextArticleId = null) => {
+    if (!ROUTES.includes(nextRoute)) return;
+    const nextHash = nextRoute === 'articles' && nextArticleId
+      ? `#/articles/${encodeURIComponent(nextArticleId)}`
+      : routeHash(nextRoute);
+    window.history.pushState(null, '', nextHash);
+    setLocation({
+      route: nextRoute,
+      articleId: nextRoute === 'articles' ? nextArticleId : null,
+      notFound: false,
+    });
+    window.scrollTo(0, 0);
+  };
 
   useEffect(() => {
     if (!window.location.hash) window.history.replaceState(null, '', '#/');
     const update = () => {
-      setRoute(readRoute());
+      setLocation(readRoute());
       window.scrollTo(0, 0);
     };
     window.addEventListener('hashchange', update);
-    return () => window.removeEventListener('hashchange', update);
+    window.addEventListener('popstate', update);
+    return () => {
+      window.removeEventListener('hashchange', update);
+      window.removeEventListener('popstate', update);
+    };
   }, []);
 
-  return route;
+  return { ...location, navigate };
 }
 
 function useSwipePages({ route }) {
@@ -444,6 +471,7 @@ function useSwipePages({ route }) {
   const suppressClickRef = useRef(false);
   const settleTimerRef = useRef(null);
   const [swiping, setSwiping] = useState(false);
+  const [swipeSlot, setSwipeSlot] = useState(null);
 
   useLayoutEffect(() => {
     const main = document.querySelector('.site-main');
@@ -460,6 +488,10 @@ function useSwipePages({ route }) {
 
     const setTrack = (x) => {
       track.style.transform = `translate3d(${x}px, 0, 0)`;
+      track.style.setProperty(
+        '--swipe-progress',
+        Math.min(1, Math.abs(x) / Math.max(1, main.clientWidth)),
+      );
     };
 
     const resetTrack = () => {
@@ -469,18 +501,19 @@ function useSwipePages({ route }) {
       setTrack(0);
       main.classList.remove('is-swiping');
       setSwiping(false);
+      setSwipeSlot(null);
     };
 
     const settle = (x, nextRoute) => {
-      const duration = reduced ? 0 : 320;
+      const duration = reduced ? 0 : 260;
       main.classList.add('is-swiping');
       track.style.transition = duration
-        ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
+        ? 'transform 260ms cubic-bezier(0.25, 0.1, 0.25, 1)'
         : 'none';
       setTrack(x);
       window.clearTimeout(settleTimerRef.current);
       settleTimerRef.current = window.setTimeout(() => {
-        if (nextRoute) window.location.hash = `#/${nextRoute}`;
+        if (nextRoute) window.location.hash = routeHash(nextRoute);
         requestAnimationFrame(resetTrack);
       }, duration);
     };
@@ -499,6 +532,9 @@ function useSwipePages({ route }) {
         pointerId: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        lastX: event.clientX,
+        lastTime: performance.now(),
+        velocity: 0,
         locked: null,
       };
     };
@@ -512,6 +548,7 @@ function useSwipePages({ route }) {
       if (!pointer.locked && Math.abs(dx) > 8) {
         if (Math.abs(dx) > Math.abs(dy)) {
           pointer.locked = 'horizontal';
+          setSwipeSlot(dx < 0 ? 'next' : 'prev');
           setSwiping(true);
           try {
             main.setPointerCapture(event.pointerId);
@@ -527,6 +564,11 @@ function useSwipePages({ route }) {
         const atStart = dx > 0 && routeIndex <= 0;
         const atEnd = dx < 0 && routeIndex >= order.length - 1;
         setTrack(atStart || atEnd ? dx * 0.24 : dx);
+        const now = performance.now();
+        const elapsed = Math.max(1, now - pointer.lastTime);
+        pointer.velocity = (event.clientX - pointer.lastX) / elapsed;
+        pointer.lastX = event.clientX;
+        pointer.lastTime = now;
       }
     };
 
@@ -537,10 +579,14 @@ function useSwipePages({ route }) {
       if (pointer.locked !== 'horizontal') return;
 
       const dx = event.clientX - pointer.x;
-      const direction = dx < 0 ? 'left' : 'right';
+      const idle = performance.now() - pointer.lastTime;
+      const velocity = idle > 120 ? 0 : pointer.velocity;
+      const threshold = Math.min(64, Math.max(36, main.clientWidth * 0.14));
+      const movement = Math.abs(dx) >= threshold ? dx : velocity;
+      const direction = movement < 0 ? 'left' : 'right';
       const nextIndex = direction === 'left' ? routeIndex + 1 : routeIndex - 1;
       const next = order[nextIndex];
-      if (Math.abs(dx) < 64 || !next) {
+      if ((Math.abs(dx) < threshold && Math.abs(velocity) < 0.35) || !next) {
         settle(0);
         return;
       }
@@ -582,7 +628,7 @@ function useSwipePages({ route }) {
     };
   }, [route]);
 
-  return swiping;
+  return { swiping, swipeSlot };
 }
 
 function useScrollBounce() {
@@ -787,7 +833,7 @@ function ArticleView({ article, onBack }) {
         <p className="article__date">{article.date}</p>
         <p className="article__summary">{article.summary}</p>
       </header>
-      <LiquidSurface className="article__card" cornerRadius={28}>
+      <LiquidSurface className="article__card is-vt-target" cornerRadius={28}>
         <div className="article__body">
           {article.body.map((block, index) => (
             <ArticleBlock key={index} block={block} />
@@ -902,7 +948,13 @@ function AboutPage() {
           lead="个人主页仍在生长，先记录我常用的模型、设备与日常碎片。"
         />
         <LiquidSurface className="profile-card" cornerRadius={28}>
-          <img className="profile-card__avatar" src={site.avatar} alt="沙丁鱼の小窝头像" />
+          <img
+            className="profile-card__avatar"
+            src={site.avatar}
+            alt="沙丁鱼の小窝头像"
+            width="400"
+            height="400"
+          />
           <div className="profile-card__body">
             <h2>{site.name}</h2>
             <p>设备清单、文章与更新记录，之后都会在这里慢慢补全。</p>
@@ -923,9 +975,9 @@ function AboutPage() {
   );
 }
 
-function ArticlesPage() {
-  const [activeId, setActiveId] = useState(null);
+function ArticlesPage({ articleId, onNavigateArticle }) {
   const [articles, setArticles] = useState(null);
+  const [pendingArticleId, setPendingArticleId] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -941,10 +993,22 @@ function ArticlesPage() {
     };
   }, []);
 
-  const active = articles?.find((article) => article.id === activeId);
+  const active = articles?.find((article) => article.id === articleId);
+
+  const openArticle = (article) => {
+    flushSync(() => setPendingArticleId(article.id));
+    if (onNavigateArticle) onNavigateArticle(article.id, 'forward');
+    else window.location.hash = `#/articles/${encodeURIComponent(article.id)}`;
+  };
+
+  const closeArticle = () => {
+    if (active) flushSync(() => setPendingArticleId(active.id));
+    if (onNavigateArticle) onNavigateArticle(null, 'back');
+    else window.location.hash = '#/articles';
+  };
 
   if (active) {
-    return <ArticleView article={active} onBack={() => setActiveId(null)} />;
+    return <ArticleView article={active} onBack={closeArticle} />;
   }
 
   return (
@@ -953,11 +1017,15 @@ function ArticlesPage() {
       {articles?.length ? (
           <div className="article-list">
             {articles.map((article) => (
-              <LiquidSurface className="article-row-glass" key={article.id} cornerRadius={20}>
+              <LiquidSurface
+                className={`article-row-glass ${pendingArticleId === article.id ? 'is-vt-source' : ''}`}
+                key={article.id}
+                cornerRadius={20}
+              >
                 <button
                   className="article-row"
                   type="button"
-                  onClick={() => setActiveId(article.id)}
+                  onClick={() => openArticle(article)}
                 >
                   <span className="article-row__tag">{article.tag}</span>
                   <span className="article-row__title">{article.title}</span>
@@ -1007,7 +1075,14 @@ function DevicesPage() {
                     {group.items.map((device) => (
                       <LiquidSurface className="device-tile" key={device.id} cornerRadius={20}>
                         <div className="device-tile__media">
-                          <img src={device.image} alt={device.name} loading="lazy" decoding="async" />
+                          <img
+                            src={device.image}
+                            alt={device.name}
+                            width={device.width}
+                            height={device.height}
+                            loading="lazy"
+                            decoding="async"
+                          />
                           <span className="device-tile__index" aria-hidden="true">
                             {String(devices.indexOf(device) + 1).padStart(2, '0')}
                           </span>
@@ -1045,9 +1120,28 @@ function DevicesPage() {
   );
 }
 
-function Page({ route, ready }) {
+function NotFoundPage() {
+  return (
+    <section className="page">
+      <PageIntro
+        eyebrow="404"
+        title="页面走丢了"
+        lead="这个地址不存在，或者内容已经移动到别处。"
+      />
+      <EmptyState icon={Sparkles} title="没有找到这个页面" lead="返回首页继续逛逛，或者从顶部导航重新选择。" />
+      <a className="not-found__link" href="#/">
+        返回首页
+      </a>
+    </section>
+  );
+}
+
+function Page({ route, ready, articleId, notFound, onNavigateArticle }) {
+  if (notFound) return <NotFoundPage />;
   if (route === 'about') return <MemoAboutPage />;
-  if (route === 'articles') return <MemoArticlesPage />;
+  if (route === 'articles') {
+    return <MemoArticlesPage articleId={articleId} onNavigateArticle={onNavigateArticle} />;
+  }
   if (route === 'devices') return <MemoDevicesPage />;
   return <MemoHomePage ready={ready} />;
 }
@@ -1058,8 +1152,10 @@ const MemoArticlesPage = memo(ArticlesPage);
 const MemoDevicesPage = memo(DevicesPage);
 
 export default function App() {
-  const route = useRoute();
-  const pageSwipeActive = useSwipePages({ route });
+  const { route, articleId, notFound, navigate } = useRoute();
+  const pageSwipe = useSwipePages({ route });
+  const pageSwipeActive = pageSwipe.swiping;
+  const pageSwipeSlot = pageSwipe.swipeSlot;
   useScrollBounce();
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
@@ -1074,6 +1170,10 @@ export default function App() {
   const [windowFocused, setWindowFocused] = useState(() => document.hasFocus?.() ?? true);
   const [interacting, setInteracting] = useState(true);
   const interactTimerRef = useRef(null);
+  const navTransitionRef = useRef(0);
+  const articleTransitionRef = useRef(0);
+  const mainRef = useRef(null);
+  const hasMountedRef = useRef(false);
   const routeKeys = navItems.map((item) => item.key);
   const routeIndex = routeKeys.indexOf(route);
   const pageSlots = [
@@ -1081,8 +1181,86 @@ export default function App() {
     { slot: 'current', route },
     { slot: 'next', route: routeKeys[routeIndex + 1] },
   ];
+  const swipeRoute = pageSwipeActive && pageSwipeSlot
+    ? pageSlots.find(({ slot }) => slot === pageSwipeSlot)?.route
+    : null;
+  const navVisualKey = swipeRoute || route;
 
-  const themeTitle = `${THEME_META[theme].label}主题`;
+  const nextTheme = THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
+  const themeTitle = `切换到${THEME_META[nextTheme].label}主题`;
+
+  const navigateTo = (nextRoute) => {
+    if (nextRoute === route) return;
+
+    const nextIndex = routeKeys.indexOf(nextRoute);
+    if (nextIndex < 0) return;
+    let committed = false;
+    const commit = () => {
+      if (committed) return;
+      committed = true;
+      navigate(nextRoute);
+    };
+
+    if (reduced || document.hidden || !document.startViewTransition) {
+      commit();
+      return;
+    }
+
+    const root = document.documentElement;
+    const transitionId = ++navTransitionRef.current;
+    root.dataset.navDirection = nextIndex > routeIndex ? 'forward' : 'back';
+    const transition = document.startViewTransition(() => flushSync(commit));
+    const fallbackTimer = window.setTimeout(commit, 120);
+    const clearDirection = () => {
+      window.clearTimeout(fallbackTimer);
+      if (navTransitionRef.current === transitionId) delete root.dataset.navDirection;
+    };
+    transition.finished.then(clearDirection, clearDirection);
+  };
+
+  const navigateArticle = (nextArticleId, direction) => {
+    const commit = () => navigate('articles', nextArticleId);
+    if (reduced || document.hidden || !document.startViewTransition) {
+      commit();
+      return;
+    }
+
+    const root = document.documentElement;
+    const transitionId = ++articleTransitionRef.current;
+    root.dataset.articleDirection = direction;
+    const transition = document.startViewTransition(() => flushSync(commit));
+    const clearDirection = () => {
+      if (articleTransitionRef.current === transitionId) delete root.dataset.articleDirection;
+    };
+    transition.finished.then(clearDirection, clearDirection);
+  };
+
+  const handleNavClick = (event, nextRoute) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    navigateTo(nextRoute);
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      hasMountedRef.current = true;
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) return;
+    mainRef.current?.focus({ preventScroll: true });
+  }, [route, articleId, notFound]);
 
   useEffect(() => {
     const wake = () => {
@@ -1111,6 +1289,10 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content',
+      theme === 'dark' ? '#191436' : '#fff1f6',
+    );
     localStorage.setItem('sardine-theme', theme);
   }, [theme]);
 
@@ -1191,6 +1373,7 @@ export default function App() {
       }
     };
 
+    update();
     const raf = requestAnimationFrame(update);
     document.fonts?.ready?.then(update).catch(() => {});
     window.addEventListener('resize', update);
@@ -1200,7 +1383,7 @@ export default function App() {
       window.removeEventListener('resize', update);
       clearTimeout(pillBoostTimerRef.current);
     };
-  }, [route, fine, ready]);
+  }, [navVisualKey, fine, ready]);
 
   useEffect(() => {
     requestAnimationFrame(() => setPillReady(true));
@@ -1237,6 +1420,7 @@ export default function App() {
       }
     };
 
+    update();
     const raf = requestAnimationFrame(update);
     document.fonts?.ready?.then(update).catch(() => {});
     window.addEventListener('resize', update);
@@ -1246,7 +1430,7 @@ export default function App() {
       window.removeEventListener('resize', update);
       clearTimeout(dockBoostTimerRef.current);
     };
-  }, [route, fine, ready]);
+  }, [navVisualKey, fine, ready]);
 
   useEffect(() => {
     requestAnimationFrame(() => setDockReady(true));
@@ -1262,7 +1446,7 @@ export default function App() {
 
   useDesktopNavDrag({
     navRef: desktopNavRef,
-    activeKey: route,
+    activeKey: navVisualKey,
     reduced,
   });
 
@@ -1282,6 +1466,9 @@ export default function App() {
 
   return (
     <div className={`app-shell ${ready ? 'is-ready' : 'is-booting'} ${compactNav ? 'is-nav-compact' : ''}`}>
+      <a className="skip-link" href="#main">
+        跳到主要内容
+      </a>
       {background}
       <GlassDefs />
       <div className="welcome-overlay" aria-hidden={ready}>
@@ -1312,9 +1499,11 @@ export default function App() {
                 return (
                   <a
                     key={item.key}
-                    className={`nav-link ${route === item.key ? 'is-active' : ''}`}
+                    className={`nav-link ${!notFound && navVisualKey === item.key ? 'is-active' : ''}`}
                     href={item.href}
                     data-nav={item.key}
+                    aria-current={!notFound && navVisualKey === item.key ? 'page' : undefined}
+                    onClick={(event) => handleNavClick(event, item.key)}
                   >
                     <Icon size={16} strokeWidth={2.1} aria-hidden="true" />
                     <span>{item.label}</span>
@@ -1331,10 +1520,12 @@ export default function App() {
       </header>
 
       <div className="site-stack">
-        <main className="site-main" id="main">
+        <main className="site-main" id="main" ref={mainRef} tabIndex={-1}>
           <div className="page-track">
             {pageSlots.map(({ slot, route: pageRoute }) =>
-              pageRoute && (slot === 'current' || (compactNav && pageSwipeActive)) ? (
+              pageRoute &&
+              (slot === 'current' ||
+                (compactNav && pageSwipeActive && pageSwipeSlot === slot)) ? (
                 <div
                   key={pageRoute}
                   className={`page-pane container ${slot === 'current' ? 'is-active' : ''}`}
@@ -1342,7 +1533,13 @@ export default function App() {
                   aria-hidden={slot === 'current' ? undefined : true}
                   inert={slot === 'current' ? undefined : true}
                 >
-                  <Page route={pageRoute} ready={ready} />
+                  <Page
+                    route={pageRoute}
+                    ready={ready}
+                    articleId={pageRoute === route ? articleId : null}
+                    notFound={pageRoute === route && notFound}
+                    onNavigateArticle={navigateArticle}
+                  />
                 </div>
               ) : null,
             )}
@@ -1373,16 +1570,18 @@ export default function App() {
             left: 0,
           }}
         />
-        <DockLens active={route} items={navItems} reduced={reduced} />
+        <DockLens active={navVisualKey} items={navItems} reduced={reduced} />
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <a
               key={item.key}
-              className={`dock-link ${route === item.key ? 'is-active' : ''}`}
+              className={`dock-link ${!notFound && navVisualKey === item.key ? 'is-active' : ''}`}
               href={item.href}
               data-nav={item.key}
               aria-label={item.label}
+              aria-current={!notFound && navVisualKey === item.key ? 'page' : undefined}
+              onClick={(event) => handleNavClick(event, item.key)}
             >
               <Icon size={20} strokeWidth={2} aria-hidden="true" />
               <span className="dock-link__label">{item.label}</span>

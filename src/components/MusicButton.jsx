@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Disc3, Pause, Play } from 'lucide-react';
 import LiquidSurface from './LiquidSurface.jsx';
 import './MusicButton.css';
@@ -32,11 +32,16 @@ export default function MusicButton({ tracks = [] }) {
   const [duration, setDuration] = useState(0);
   const [syncedLyrics, setSyncedLyrics] = useState([]);
   const [titleOverflow, setTitleOverflow] = useState(false);
+  const [playError, setPlayError] = useState(false);
   const rootRef = useRef(null);
   const audioRef = useRef(null);
   const lyricsListRef = useRef(null);
+  const panelRef = useRef(null);
   const titleRef = useRef(null);
+  const toggleRef = useRef(null);
+  const panelId = `music-panel-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const track = tracks[0] || null;
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
 
   useEffect(() => {
     if (!track?.lrc) {
@@ -45,7 +50,10 @@ export default function MusicButton({ tracks = [] }) {
     }
     let cancelled = false;
     fetch(track.lrc)
-      .then((response) => response.text())
+      .then((response) => {
+        if (!response.ok) throw new Error(`Lyrics request failed: ${response.status}`);
+        return response.text();
+      })
       .then((text) => {
         if (!cancelled) setSyncedLyrics(parseLrc(text));
       })
@@ -56,6 +64,12 @@ export default function MusicButton({ tracks = [] }) {
       cancelled = true;
     };
   }, [track]);
+
+  useEffect(() => {
+    setTime(0);
+    setDuration(0);
+    setPlayError(false);
+  }, [track?.src]);
 
   useLayoutEffect(() => {
     const checkTitle = () => {
@@ -119,14 +133,29 @@ export default function MusicButton({ tracks = [] }) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const panel = panelRef.current;
+    const previous = document.activeElement;
+    const first = panel?.querySelector('button:not([disabled]), input:not([disabled]), [href]');
+    first?.focus({ preventScroll: true });
+
+    return () => {
+      if (panel?.contains(document.activeElement)) {
+        previous?.focus?.({ preventScroll: true });
+      }
+    };
+  }, [open]);
+
   const togglePlay = async () => {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
       try {
+        setPlayError(false);
         await audio.play();
       } catch {
-        void 0;
+        setPlayError(true);
       }
     } else {
       audio.pause();
@@ -148,7 +177,8 @@ export default function MusicButton({ tracks = [] }) {
   const seek = (event) => {
     const audio = audioRef.current;
     if (!audio) return;
-    const next = Number(event.target.value);
+    const next = Math.min(safeDuration, Math.max(0, Number(event.target.value)));
+    if (!Number.isFinite(next)) return;
     audio.currentTime = next;
     setTime(next);
   };
@@ -160,10 +190,20 @@ export default function MusicButton({ tracks = [] }) {
           ref={audioRef}
           src={track.src}
           preload="none"
-          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+          onLoadedMetadata={(event) => {
+            const nextDuration = event.currentTarget.duration;
+            setDuration(Number.isFinite(nextDuration) && nextDuration > 0 ? nextDuration : 0);
+          }}
           onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
-          onPlay={() => setPlaying(true)}
+          onPlay={() => {
+            setPlaying(true);
+            setPlayError(false);
+          }}
           onPause={() => setPlaying(false)}
+          onError={() => {
+            setPlaying(false);
+            setPlayError(true);
+          }}
           onEnded={() => {
             setPlaying(false);
             setTime(0);
@@ -172,9 +212,11 @@ export default function MusicButton({ tracks = [] }) {
       ) : null}
 
       <button
+        ref={toggleRef}
         className="music-toggle"
         type="button"
-        aria-label="音乐播放器"
+        aria-label={open ? '关闭音乐播放器' : '打开音乐播放器'}
+        aria-controls={panelId}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={toggleOpen}
@@ -184,16 +226,19 @@ export default function MusicButton({ tracks = [] }) {
       </button>
 
       <LiquidSurface
+        surfaceRef={panelRef}
+        id={panelId}
         className={`music-panel ${open ? 'is-open' : ''}`}
         cornerRadius={24}
         role="dialog"
         ariaLabel="音乐播放器"
+        ariaHidden={open ? undefined : true}
       >
         {track ? (
           <div className="music-player">
             <div className="music-player__top">
               <div className="music-player__cover">
-                <img src={track.cover} alt="" />
+                <img src={track.cover} alt="" width="720" height="720" />
               </div>
               <div className="music-player__info">
                 <strong
@@ -234,19 +279,25 @@ export default function MusicButton({ tracks = [] }) {
                 className="music-player__range"
                 type="range"
                 min="0"
-                max={duration || 0}
+                max={safeDuration}
                 step="0.1"
-                value={Math.min(time, duration || 0)}
+                value={Math.min(time, safeDuration)}
                 style={{
-                  '--range-progress': duration
-                    ? `${Math.min(100, (Math.min(time, duration) / duration) * 100)}%`
+                  '--range-progress': safeDuration
+                    ? `${Math.min(100, (Math.min(time, safeDuration) / safeDuration) * 100)}%`
                     : '0%',
                 }}
                 aria-label="播放进度"
                 onChange={seek}
               />
-              <span>{formatTime(duration)}</span>
+              <span>{formatTime(safeDuration)}</span>
             </div>
+
+            {playError ? (
+              <p className="music-player__error" role="alert">
+                无法播放这首歌，请检查音频资源或网络。
+              </p>
+            ) : null}
 
             {(syncedLyrics.length || track.lyrics?.length) ? (
               <div className="music-player__lyrics">
