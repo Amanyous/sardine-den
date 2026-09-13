@@ -1,5 +1,3 @@
-import { GLASS_FILTER_ID } from './GlassDefs.jsx';
-
 export default function LiquidSurface({
   children,
   className = '',
@@ -25,11 +23,7 @@ export default function LiquidSurface({
       aria-label={ariaLabel}
       aria-hidden={ariaHidden}
     >
-      <span
-        className="liquid-surface__refract"
-        aria-hidden="true"
-        style={{ filter: `url(#${GLASS_FILTER_ID})` }}
-      />
+      <span className="liquid-surface__refract" aria-hidden="true" />
       <span className="liquid-surface__glare" aria-hidden="true" />
       <div className="liquid-surface__content">{children}</div>
     </div>

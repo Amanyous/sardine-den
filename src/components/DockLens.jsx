@@ -136,12 +136,16 @@ export default function DockLens({ active, items, reduced }) {
   useLayoutEffect(() => {
     const dock = lensRef.current?.parentElement?.closest?.('.mobile-dock') || lensRef.current?.parentElement;
     if (!dock) return undefined;
+    let moveFrame = 0;
+    let pendingX = 0;
     centersRef.current = null;
     linksRef.current = [];
     dockRectRef.current = null;
 
     const onDown = (event) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (moveFrame) cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
       const s = st.current;
       s.down = true;
       s.dragging = false;
@@ -160,18 +164,24 @@ export default function DockLens({ active, items, reduced }) {
     const onMove = (event) => {
       const s = st.current;
       if (!s.down) return;
-      const dx = event.clientX - s.startX;
-      if (!s.dragging && Math.abs(dx) > DRAG_THRESHOLD) {
-        s.dragging = true;
-        s.wasDrag = true;
-        try {
-          dock.setPointerCapture(event.pointerId);
-        } catch (e) {
-          void 0;
+      pendingX = event.clientX;
+      if (moveFrame) return;
+      const pointerId = event.pointerId;
+      moveFrame = requestAnimationFrame(() => {
+        moveFrame = 0;
+        if (!s.down) return;
+        const dx = pendingX - s.startX;
+        if (!s.dragging && Math.abs(dx) > DRAG_THRESHOLD) {
+          s.dragging = true;
+          s.wasDrag = true;
+          try {
+            dock.setPointerCapture(pointerId);
+          } catch (e) {
+            void 0;
+          }
         }
-      }
-      if (s.dragging) {
-        const rel = event.clientX - (dockRectRef.current?.left ?? dock.getBoundingClientRect().left);
+        if (!s.dragging) return;
+        const rel = pendingX - (dockRectRef.current?.left ?? dock.getBoundingClientRect().left);
         s.x = s.tx = rel;
         s.vx = 0;
         s.ts = 1.12;
@@ -180,12 +190,14 @@ export default function DockLens({ active, items, reduced }) {
           el.classList.toggle('is-hover', !!target && el.getAttribute('data-nav') === target.key);
         });
         wakeRef.current();
-      }
+      });
     };
 
     const onUp = (event) => {
       const s = st.current;
       if (!s.down) return;
+      if (moveFrame) cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
       const wasDragging = s.dragging;
       s.down = false;
       s.dragging = false;
@@ -214,6 +226,8 @@ export default function DockLens({ active, items, reduced }) {
 
     const onCancel = () => {
       const s = st.current;
+      if (moveFrame) cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
       s.down = false;
       s.dragging = false;
       s.ts = 1;
@@ -247,6 +261,7 @@ export default function DockLens({ active, items, reduced }) {
     dock.addEventListener('click', onClickCapture, true);
 
     return () => {
+      if (moveFrame) cancelAnimationFrame(moveFrame);
       ro.disconnect();
       window.removeEventListener('resize', onCancel);
       dock.removeEventListener('pointerdown', onDown);

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 export const GLASS_FILTER_ID = 'sardine-liquid-glass';
 
 // A single shared displacement filter. SVG filters are expensive to mount, so
@@ -8,6 +10,16 @@ export const GLASS_FILTER_ID = 'sardine-liquid-glass';
 // chromatic fringe is intentionally left out here.
 
 export default function GlassDefs() {
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      document.documentElement.dataset.glass = 'ready';
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      delete document.documentElement.dataset.glass;
+    };
+  }, []);
+
   return (
     <svg aria-hidden="true" width="0" height="0" className="liquid-glass-defs">
       <defs>
@@ -35,7 +47,6 @@ export default function GlassDefs() {
             yChannelSelector="G"
             result="displaced"
           />
-          <feGaussianBlur in="displaced" stdDeviation="0.2" result="sharp" />
         </filter>
       </defs>
     </svg>

@@ -98,6 +98,68 @@ function useCompactNav() {
   return useMediaQuery('(max-width: 760px)');
 }
 
+function readNavViewport() {
+  const screen = window.screen;
+  const availWidth = Number.isFinite(screen?.availWidth) ? screen.availWidth : window.innerWidth;
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    screenX: Number.isFinite(window.screenX) ? window.screenX : 0,
+    availWidth,
+  };
+}
+
+function getNavSide({ width, screenX, availWidth }) {
+  if (!Number.isFinite(availWidth) || availWidth <= 0) return 'right';
+  const narrowWindow = width < availWidth * 0.82;
+  const nearLeftEdge = screenX <= availWidth * 0.18;
+  return narrowWindow && nearLeftEdge ? 'left' : 'right';
+}
+
+function useNavMode() {
+  const coarse = useMediaQuery('(pointer: coarse)');
+  const [viewport, setViewport] = useState(readNavViewport);
+
+  useEffect(() => {
+    const update = () => setViewport(readNavViewport());
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    window.visualViewport?.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      window.visualViewport?.removeEventListener('resize', update);
+    };
+  }, []);
+
+  const ua = navigator.userAgent || '';
+  const knownFlip = /Flip|SM-F7\d{2}/i.test(ua);
+  const knownDuo = /\bDuo\b/i.test(ua);
+  const knownXiaomi18Fold = /Xiaomi 18 Fold|18 Fold/i.test(ua);
+  const knownFoldable = knownFlip || knownDuo || knownXiaomi18Fold || /Fold|SM-F9\d{2}/i.test(ua);
+  const tabletLike = /iPad|Tablet/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua));
+  const adaptiveTouch = coarse && (tabletLike || knownFoldable || (viewport.width >= 600 && viewport.height > 560));
+  const tabletViewport = !coarse
+    && viewport.width >= 600
+    && viewport.width <= 1200
+    && viewport.height >= 700
+    && viewport.width / viewport.height <= 1.6;
+  const adaptiveLayout = adaptiveTouch || tabletViewport;
+  const side = getNavSide(viewport);
+
+  if (!adaptiveLayout) return { mode: 'legacy', side: 'right', adaptive: false };
+  if (viewport.height <= 560) return { mode: 'adaptive-dock', side, adaptive: true };
+
+  if (viewport.width < 600) {
+    return knownFlip || knownDuo || knownXiaomi18Fold
+      ? { mode: 'rail', side, adaptive: true }
+      : { mode: 'legacy', side: 'right', adaptive: false };
+  }
+
+  return { mode: 'rail', side, adaptive: true };
+}
+
 function useNavMorph({ compact, desktopRef, dockRef, topbarRef, reduced }) {
   const topRectsRef = useRef([]);
   const dockRectsRef = useRef([]);
@@ -258,7 +320,7 @@ function useNavMorph({ compact, desktopRef, dockRef, topbarRef, reduced }) {
   }, [compact, reduced]);
 }
 
-function useDesktopNavDrag({ navRef, activeKey, reduced }) {
+function useDesktopNavDrag({ navRef, activeKey, reduced, enabled }) {
   const stRef = useRef({});
   const activeKeyRef = useRef(activeKey);
 
@@ -268,10 +330,12 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
 
   useEffect(() => {
     const nav = navRef.current;
-    if (!nav || reduced) return undefined;
+    if (!nav || reduced || !enabled) return undefined;
 
     const st = stRef.current;
     let pill = null;
+    let moveFrame = 0;
+    let pendingX = 0;
 
     const readItems = () =>
       Array.from(nav.querySelectorAll('.nav-link')).map((el) => {
@@ -310,6 +374,8 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
 
     const onPointerDown = (event) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (moveFrame) cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
       const active = readActive();
       pill = nav.querySelector('.desktop-nav__pill');
       if (!active || !pill) return;
@@ -329,31 +395,40 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
 
     const onPointerMove = (event) => {
       if (!st.down || event.pointerId !== st.pointerId) return;
+      pendingX = event.clientX;
+      if (moveFrame) return;
+      const pointerId = event.pointerId;
+      moveFrame = requestAnimationFrame(() => {
+        moveFrame = 0;
+        if (!st.down || st.pointerId !== pointerId) return;
 
-      if (!st.dragging && Math.abs(event.clientX - st.startX) > 7) {
-        st.dragging = true;
-        st.wasDrag = true;
-        try {
-          nav.setPointerCapture(event.pointerId);
-        } catch (err) {
-          void 0;
+        if (!st.dragging && Math.abs(pendingX - st.startX) > 7) {
+          st.dragging = true;
+          st.wasDrag = true;
+          try {
+            nav.setPointerCapture(pointerId);
+          } catch (err) {
+            void 0;
+          }
+          pill.style.willChange = 'transform, width';
         }
-        pill.style.willChange = 'transform, width';
-      }
 
-      if (!st.dragging) return;
+        if (!st.dragging) return;
 
-      const list = readItems();
-      const first = list[0];
-      const last = list[list.length - 1];
-      const pointerX = event.clientX - st.navRect.left;
-      const maxLeft = last.left + last.width - st.activeWidth;
-      const left = Math.min(Math.max(pointerX - st.grabOffset, first.left), maxLeft);
-      place(left, st.activeWidth, false);
+        const list = readItems();
+        const first = list[0];
+        const last = list[list.length - 1];
+        const pointerX = pendingX - st.navRect.left;
+        const maxLeft = last.left + last.width - st.activeWidth;
+        const left = Math.min(Math.max(pointerX - st.grabOffset, first.left), maxLeft);
+        place(left, st.activeWidth, false);
+      });
     };
 
     const finishDrag = (event) => {
       if (!st.down || event.pointerId !== st.pointerId) return;
+      if (moveFrame) cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
       const wasDrag = st.wasDrag;
       st.down = false;
       st.dragging = false;
@@ -384,6 +459,8 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
 
     const cancelDrag = () => {
       if (!st.down) return;
+      if (moveFrame) cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
       const wasDrag = st.wasDrag;
       st.down = false;
       st.dragging = false;
@@ -402,13 +479,15 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
       st.wasDrag = false;
     };
 
-    nav.addEventListener('pointerdown', onPointerDown);
-    nav.addEventListener('pointermove', onPointerMove);
-    nav.addEventListener('pointerup', finishDrag);
-    nav.addEventListener('pointercancel', cancelDrag);
+    const passive = { passive: true };
+    nav.addEventListener('pointerdown', onPointerDown, passive);
+    nav.addEventListener('pointermove', onPointerMove, passive);
+    nav.addEventListener('pointerup', finishDrag, passive);
+    nav.addEventListener('pointercancel', cancelDrag, passive);
     nav.addEventListener('click', onClickCapture, true);
 
     return () => {
+      if (moveFrame) cancelAnimationFrame(moveFrame);
       nav.removeEventListener('pointerdown', onPointerDown);
       nav.removeEventListener('pointermove', onPointerMove);
       nav.removeEventListener('pointerup', finishDrag);
@@ -419,7 +498,7 @@ function useDesktopNavDrag({ navRef, activeKey, reduced }) {
         pill.style.willChange = 'auto';
       }
     };
-  }, [navRef, reduced]);
+  }, [navRef, reduced, enabled]);
 }
 
 function useRoute() {
@@ -467,7 +546,7 @@ function useRoute() {
   return { ...location, navigate };
 }
 
-function useSwipePages({ route }) {
+function useSwipePages({ route, disabled = false }) {
   const pointerRef = useRef(null);
   const suppressClickRef = useRef(false);
   const settleTimerRef = useRef(null);
@@ -478,6 +557,7 @@ function useSwipePages({ route }) {
     const main = document.querySelector('.site-main');
     const track = main?.querySelector('.page-track');
     if (!main || !track) return undefined;
+    if (disabled) return undefined;
 
     const shouldTrack = () =>
       window.matchMedia?.('(max-width: 760px)').matches ||
@@ -542,7 +622,7 @@ function useSwipePages({ route }) {
     const onPointerDown = (event) => {
       if (!shouldTrack()) return;
       const target = event.target.closest?.(
-        '.mobile-dock, .music-panel, .music-button, .theme-toggle, .update-book',
+        '.mobile-dock, .nav-controls, .side-rail, .music-panel, .music-button, .theme-toggle, .update-book',
       );
       if (target) {
         pointerRef.current = null;
@@ -650,7 +730,7 @@ function useSwipePages({ route }) {
       document.removeEventListener('click', onClickCapture, true);
       resetTrack();
     };
-  }, [route]);
+  }, [route, disabled]);
 
   return { swiping, swipeSlot };
 }
@@ -691,7 +771,7 @@ function useScrollBounce() {
 
     const onTouchStart = (event) => {
       if (!shouldTrack() || event.touches.length !== 1) return;
-      if (event.target.closest?.('.mobile-dock, .music-panel, .music-button, .theme-toggle, .update-book')) return;
+      if (event.target.closest?.('.mobile-dock, .nav-controls, .side-rail, .music-panel, .music-button, .theme-toggle, .update-book')) return;
       state.active = true;
       state.locked = null;
       state.startX = event.touches[0].clientX;
@@ -771,6 +851,86 @@ function ThemeButton({ theme, onCycle, title }) {
       <span className="theme-toggle__glass" aria-hidden="true" />
       <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
     </button>
+  );
+}
+
+function NavControls({ side = 'right', theme, onCycleTheme, themeTitle }) {
+  return (
+    <div className={`nav-controls nav-controls--rail nav-controls--${side}`}>
+      <MusicButton tracks={[playerTrack]} />
+      <ThemeButton theme={theme} onCycle={onCycleTheme} title={themeTitle} />
+    </div>
+  );
+}
+
+function SideRailNav({ activeKey, notFound, onNavClick, side }) {
+  const navRef = useRef(null);
+  const [geom, setGeom] = useState({ y: 0, h: 0 });
+  const [ready, setReady] = useState(false);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return undefined;
+
+    const update = () => {
+      const item = nav.querySelector('.rail-link.is-active');
+      if (!item) return;
+      const y = item.offsetTop;
+      const h = item.offsetHeight;
+      setGeom((prev) => (prev.y === y && prev.h === h ? prev : { y, h }));
+    };
+
+    update();
+    const frame = requestAnimationFrame(update);
+    document.fonts?.ready?.then(update).catch(() => {});
+    const observer = new ResizeObserver(update);
+    observer.observe(nav);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [activeKey, notFound]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <aside className={`side-rail side-rail--${side}`} aria-label="平板和折叠屏导航">
+      <LiquidSurface className="side-rail__nav" cornerRadius={999}>
+        <nav className="rail-nav" ref={navRef} aria-label="主导航">
+          <span
+            className={`rail-glass ${ready ? '' : 'is-init'}`}
+            aria-hidden="true"
+            style={{
+              height: `${geom.h}px`,
+              transform: `translateY(${geom.y}px)`,
+              opacity: geom.h ? 1 : 0,
+            }}
+          />
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <a
+                key={item.key}
+                className={`rail-link ${!notFound && activeKey === item.key ? 'is-active' : ''}`}
+                href={item.href}
+                data-nav={item.key}
+                aria-current={!notFound && activeKey === item.key ? 'page' : undefined}
+                aria-label={item.label}
+                onClick={(event) => onNavClick(event, item.key)}
+              >
+                <Icon size={20} strokeWidth={2} aria-hidden="true" />
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+      </LiquidSurface>
+
+    </aside>
   );
 }
 
@@ -937,11 +1097,16 @@ function ArticleImage({ block }) {
 
     document.addEventListener('keydown', onKeyDown);
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.classList.add('has-lightbox');
+    window.dispatchEvent(new Event('sardine:background-pause'));
+    window.dispatchEvent(new Event('sardine:close-music'));
     closeRef.current?.focus({ preventScroll: true });
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.documentElement.style.overflow = previousOverflow;
+      document.documentElement.classList.remove('has-lightbox');
+      window.dispatchEvent(new Event('sardine:background-resume'));
       previous?.focus?.({ preventScroll: true });
     };
   }, [open]);
@@ -1179,6 +1344,8 @@ function AboutPage() {
             alt="沙丁鱼の小窝头像"
             width="400"
             height="400"
+            loading="lazy"
+            decoding="async"
           />
           <div className="profile-card__body">
             <h2>{site.name}</h2>
@@ -1378,13 +1545,19 @@ const MemoDevicesPage = memo(DevicesPage);
 
 export default function App() {
   const { route, articleId, notFound, navigate } = useRoute();
-  const pageSwipe = useSwipePages({ route });
+  const compactNav = useCompactNav();
+  const navMode = useNavMode();
+  const landscapeTouch = useMediaQuery('(orientation: landscape) and (max-height: 560px) and (pointer: coarse)');
+  const allowPageSwipe = compactNav || navMode.mode === 'adaptive-dock' || landscapeTouch;
+  const pageSwipe = useSwipePages({ route, disabled: !allowPageSwipe });
   const pageSwipeActive = pageSwipe.swiping;
   const pageSwipeSlot = pageSwipe.swipeSlot;
   useScrollBounce();
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
-  const compactNav = useCompactNav();
+  const railNav = navMode.mode === 'rail';
+  const adaptiveDock = navMode.mode === 'adaptive-dock';
+  const shellCompact = compactNav || railNav || adaptiveDock;
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('sardine-theme');
     if (saved === 'light' || saved === 'dark') return saved;
@@ -1396,6 +1569,7 @@ export default function App() {
   const [windowFocused, setWindowFocused] = useState(() => document.hasFocus?.() ?? true);
   const [interacting, setInteracting] = useState(true);
   const interactTimerRef = useRef(null);
+  const backgroundPauseRef = useRef(0);
   const navTransitionRef = useRef(0);
   const articleTransitionRef = useRef(0);
   const mainRef = useRef(null);
@@ -1410,7 +1584,7 @@ export default function App() {
   const swipeRoute = pageSwipeActive && pageSwipeSlot
     ? pageSlots.find(({ slot }) => slot === pageSwipeSlot)?.route
     : null;
-  const navVisualKey = swipeRoute || route;
+  const navVisualKey = compactNav || navMode.mode === 'adaptive-dock' ? (swipeRoute || route) : route;
 
   const nextTheme = THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
   const themeTitle = `切换到${THEME_META[nextTheme].label}主题`;
@@ -1434,12 +1608,14 @@ export default function App() {
 
     const root = document.documentElement;
     const transitionId = ++navTransitionRef.current;
+    window.dispatchEvent(new Event('sardine:background-pause'));
     root.dataset.navDirection = nextIndex > routeIndex ? 'forward' : 'back';
     const transition = document.startViewTransition(() => flushSync(commit));
     const fallbackTimer = window.setTimeout(commit, 120);
     const clearDirection = () => {
       window.clearTimeout(fallbackTimer);
       if (navTransitionRef.current === transitionId) delete root.dataset.navDirection;
+      window.dispatchEvent(new Event('sardine:background-resume'));
     };
     transition.finished.then(clearDirection, clearDirection);
   };
@@ -1453,10 +1629,12 @@ export default function App() {
 
     const root = document.documentElement;
     const transitionId = ++articleTransitionRef.current;
+    window.dispatchEvent(new Event('sardine:background-pause'));
     root.dataset.articleDirection = direction;
     const transition = document.startViewTransition(() => flushSync(commit));
     const clearDirection = () => {
       if (articleTransitionRef.current === transitionId) delete root.dataset.articleDirection;
+      window.dispatchEvent(new Event('sardine:background-resume'));
     };
     transition.finished.then(clearDirection, clearDirection);
   };
@@ -1523,6 +1701,13 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    document.documentElement.dataset.navLayout = railNav ? 'vertical' : 'horizontal';
+    return () => {
+      delete document.documentElement.dataset.navLayout;
+    };
+  }, [railNav]);
+
+  useEffect(() => {
     const delay = reduced ? 0 : 4200;
     const timer = window.setTimeout(() => setReady(true), delay);
     return () => window.clearTimeout(timer);
@@ -1541,17 +1726,53 @@ export default function App() {
   }, [fine]);
 
   useEffect(() => {
+    const connection = navigator.connection;
+    if (connection?.saveData || connection?.effectiveType?.includes('2g')) return undefined;
+    const schedule = window.requestIdleCallback?.bind(window) || ((callback) => window.setTimeout(callback, 1500));
+    const cancel = window.cancelIdleCallback?.bind(window) || window.clearTimeout;
+    const idle = schedule(() => {
+      import('./data/articles.js').catch(() => {});
+    }, { timeout: 2500 });
+    return () => cancel(idle);
+  }, []);
+
+  useEffect(() => {
+    const pause = () => {
+      backgroundPauseRef.current += 1;
+      setBackgroundActive(false);
+    };
+    const resume = () => {
+      backgroundPauseRef.current = Math.max(0, backgroundPauseRef.current - 1);
+      if (backgroundPauseRef.current === 0) setBackgroundActive(true);
+    };
+    window.addEventListener('sardine:background-pause', pause);
+    window.addEventListener('sardine:background-resume', resume);
+    return () => {
+      window.removeEventListener('sardine:background-pause', pause);
+      window.removeEventListener('sardine:background-resume', resume);
+    };
+  }, []);
+
+  useEffect(() => {
     let resumeTimer;
+    let gesturePaused = false;
     const isMobileGesture = () =>
       window.matchMedia?.('(max-width: 760px)').matches ||
       window.matchMedia?.('(pointer: coarse)').matches;
     const pause = () => {
-      setBackgroundActive(false);
+      if (!gesturePaused) {
+        gesturePaused = true;
+        window.dispatchEvent(new Event('sardine:background-pause'));
+      }
       window.clearTimeout(resumeTimer);
     };
     const resume = () => {
       window.clearTimeout(resumeTimer);
-      resumeTimer = window.setTimeout(() => setBackgroundActive(true), 180);
+      resumeTimer = window.setTimeout(() => {
+        if (!gesturePaused) return;
+        gesturePaused = false;
+        window.dispatchEvent(new Event('sardine:background-resume'));
+      }, 180);
     };
     const pauseWhileScrolling = () => {
       pause();
@@ -1709,6 +1930,7 @@ export default function App() {
     navRef: desktopNavRef,
     activeKey: navVisualKey,
     reduced,
+    enabled: fine,
   });
 
   const background = useMemo(
@@ -1727,7 +1949,9 @@ export default function App() {
   );
 
   return (
-    <div className={`app-shell ${ready ? 'is-ready' : 'is-booting'} ${compactNav ? 'is-nav-compact' : ''}`}>
+    <div
+      className={`app-shell ${ready ? 'is-ready' : 'is-booting'} ${shellCompact ? 'is-nav-compact' : ''} ${railNav ? 'is-nav-rail' : ''} ${adaptiveDock ? 'is-nav-adaptive-dock' : ''} ${railNav ? (navMode.side === 'left' ? 'is-rail-left' : 'is-rail-right') : ''}`}
+    >
       <a className="skip-link" href="#main">
         跳到主要内容
       </a>
@@ -1774,10 +1998,12 @@ export default function App() {
               })}
             </nav>
           </LiquidSurface>
-          <div className="topbar__actions">
-            <MusicButton tracks={[playerTrack]} />
-            <ThemeButton theme={theme} onCycle={cycleTheme} title={themeTitle} />
-          </div>
+          {!railNav ? (
+            <div className="topbar__actions">
+              <MusicButton tracks={[playerTrack]} />
+              <ThemeButton theme={theme} onCycle={cycleTheme} title={themeTitle} />
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -1786,8 +2012,7 @@ export default function App() {
           <div className="page-track">
             {pageSlots.map(({ slot, route: pageRoute }) =>
               pageRoute &&
-              (slot === 'current' ||
-                (compactNav && pageSwipeActive && pageSwipeSlot === slot)) ? (
+              (slot === 'current' || (pageSwipeActive && pageSwipeSlot === slot)) ? (
                 <div
                   key={pageRoute}
                   className={`page-pane container ${slot === 'current' ? 'is-active' : ''}`}
@@ -1851,6 +2076,25 @@ export default function App() {
           );
         })}
       </LiquidSurface>
+
+      {railNav ? (
+        <SideRailNav
+          activeKey={navVisualKey}
+          notFound={notFound}
+          onNavClick={handleNavClick}
+          side={navMode.side}
+        />
+      ) : null}
+
+      {railNav ? (
+        <NavControls
+          side={navMode.side}
+          theme={theme}
+          onCycleTheme={cycleTheme}
+          themeTitle={themeTitle}
+        />
+      ) : null}
+
     </div>
   );
 }

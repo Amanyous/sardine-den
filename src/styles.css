@@ -21,6 +21,8 @@
   --page-duration: 420ms;
   --page-out-x: -10vw;
   --page-in-x: 10vw;
+  --page-out-y: 0px;
+  --page-in-y: 0px;
 }
 
 :root[data-theme='dark'] {
@@ -77,6 +79,18 @@
   --page-in-x: -10vw;
 }
 
+:root[data-nav-layout='vertical'][data-nav-direction] {
+  --page-out-x: 0px;
+  --page-in-x: 0px;
+  --page-out-y: -8vh;
+  --page-in-y: 8vh;
+}
+
+:root[data-nav-layout='vertical'][data-nav-direction='back'] {
+  --page-out-y: 8vh;
+  --page-in-y: -8vh;
+}
+
 :root[data-article-direction] .article-row-glass.is-vt-source,
 :root[data-article-direction] .article__card.is-vt-target {
   view-transition-name: article-hero;
@@ -105,14 +119,14 @@
 @keyframes page-pane-out {
   to {
     opacity: 0;
-    transform: translate3d(var(--page-out-x), 0, 0) scale(0.985);
+    transform: translate3d(var(--page-out-x), var(--page-out-y), 0) scale(0.985);
   }
 }
 
 @keyframes page-pane-in {
   from {
     opacity: 0;
-    transform: translate3d(var(--page-in-x), 0, 0) scale(0.985);
+    transform: translate3d(var(--page-in-x), var(--page-in-y), 0) scale(0.985);
   }
 
   to {
@@ -150,6 +164,8 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
+  contain: paint;
+  isolation: isolate;
   border-radius: var(--lg-radius);
   box-shadow: 0 14px 40px rgba(var(--shadow-color), 0.12);
 }
@@ -172,10 +188,21 @@
   z-index: 1;
   display: block;
   overflow: hidden;
+  contain: paint;
   border-radius: inherit;
   background: color-mix(in srgb, var(--surface) calc(var(--lg-tint, 0.2) * 100%), transparent);
   backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
   -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+}
+
+html[data-glass='ready'] .liquid-surface__refract {
+  filter: url(#sardine-liquid-glass);
+}
+
+html:not([data-glass='ready']) .liquid-surface__refract,
+html:not([data-glass='ready']) .theme-toggle__glass,
+html:not([data-glass='ready']) .music-toggle__glass {
+  filter: none;
 }
 
 .liquid-surface__glare {
@@ -2190,4 +2217,404 @@ p {
     transition: none;
   }
 
+}
+
+/* Adaptive tablet/foldable navigation: floating capsules keep touch targets
+   near the active edge while content keeps a safe lane around them. */
+.app-shell {
+  --rail-width: 74px;
+  --rail-inset: 12px;
+}
+
+.side-rail {
+  --rail-x: 0px;
+  position: fixed;
+  top: 50%;
+  right: calc(var(--rail-inset) + env(safe-area-inset-right));
+  z-index: 62;
+  display: flex;
+  width: var(--rail-width);
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translate3d(var(--rail-x), -50%, 0);
+  transition:
+    transform 420ms var(--ease-hig),
+    opacity 260ms var(--ease-glass),
+    visibility 0s linear 260ms;
+}
+
+.app-shell.is-nav-rail .side-rail {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    transform 420ms var(--ease-hig),
+    opacity 260ms var(--ease-glass),
+    visibility 0s 0s;
+}
+
+.app-shell.is-rail-left .side-rail {
+  --rail-x: calc(-100vw + 100% + 20px + env(safe-area-inset-left) + env(safe-area-inset-right));
+}
+
+.side-rail__nav {
+  width: 100%;
+}
+
+.side-rail__nav .liquid-surface__content {
+  padding: 6px;
+}
+
+.rail-nav {
+  position: relative;
+  display: grid;
+  width: 100%;
+  gap: 2px;
+}
+
+.rail-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 54%, rgba(255, 255, 255, 0) 78%),
+    radial-gradient(120% 120% at 18% 0%, rgba(255, 255, 255, 0.1), transparent 46%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 20%, rgba(255, 255, 255, 0.14)),
+    0 8px 22px rgba(var(--shadow-color), 0.16);
+  pointer-events: none;
+  transition:
+    transform 360ms var(--ease-hig),
+    height 360ms var(--ease-hig),
+    opacity 200ms ease;
+}
+
+.rail-glass.is-init {
+  transition: none;
+}
+
+:root[data-theme='dark'] .rail-glass {
+  background-color: rgba(255, 255, 255, 0.1);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 52%, rgba(255, 255, 255, 0) 78%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.rail-link {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 60px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 3px;
+  border-radius: 999px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  transition: color 180ms ease, transform 120ms var(--ease-glass);
+}
+
+.rail-link svg {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.rail-link span {
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+.rail-link.is-active {
+  color: var(--ink);
+}
+
+.rail-link:active {
+  transform: scale(0.96);
+}
+
+/* Controls float independently near the bottom and have no capsule. */
+.nav-controls {
+  position: fixed;
+  z-index: 63;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translate3d(var(--controls-x, 0px), 0, 0);
+  transition: transform 420ms var(--ease-hig), opacity 240ms var(--ease-glass);
+}
+
+.nav-controls--rail {
+  right: calc(var(--rail-inset) + env(safe-area-inset-right));
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  flex-direction: column;
+}
+
+.nav-controls--rail.nav-controls--left {
+  --controls-x: calc(-100vw + 100% + 20px + env(safe-area-inset-left) + env(safe-area-inset-right));
+}
+
+.nav-controls .music-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.nav-controls .music-toggle,
+.nav-controls .theme-toggle {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+}
+
+
+
+.app-shell.is-nav-rail .site-main {
+  padding-bottom: 88px;
+}
+
+.app-shell.is-nav-rail .mobile-dock {
+  display: none;
+}
+
+/* Keep content out of the capsule lane while the capsule itself stays floating. */
+.app-shell.is-nav-rail .page-pane,
+.app-shell.is-nav-rail .site-footer {
+  padding-inline-end: calc(22px + var(--rail-width) + 20px + env(safe-area-inset-right));
+}
+
+.app-shell.is-nav-rail.is-rail-left .page-pane,
+.app-shell.is-nav-rail.is-rail-left .site-footer {
+  padding-inline-start: calc(22px + var(--rail-width) + 20px + env(safe-area-inset-left));
+  padding-inline-end: 22px;
+}
+
+.app-shell.is-nav-rail .site-footer {
+  padding-bottom: 72px;
+}
+
+/* The music panel opens inward from its control capsule. */
+.app-shell.is-nav-rail .nav-controls--rail .music-panel {
+  top: auto;
+  right: calc(100% + 12px);
+  bottom: 0;
+  left: auto;
+  transform: translateX(6px) scale(0.96);
+  transform-origin: bottom right;
+}
+
+.app-shell.is-nav-rail .nav-controls--rail .music-panel.is-open {
+  transform: translateX(0) scale(1);
+}
+
+.app-shell.is-nav-rail.is-rail-left .nav-controls--rail .music-panel {
+  right: auto;
+  left: calc(100% + 12px);
+  transform: translateX(-6px) scale(0.96);
+  transform-origin: bottom left;
+}
+
+.app-shell.is-nav-rail.is-rail-left .nav-controls--rail .music-panel.is-open {
+  transform: translateX(0) scale(1);
+}
+
+.app-shell.is-nav-rail .topbar__inner,
+.app-shell.is-nav-adaptive-dock .topbar__inner {
+  position: static;
+  justify-content: center;
+}
+
+.app-shell.is-nav-rail .topbar__brand,
+.app-shell.is-nav-adaptive-dock .topbar__brand {
+  position: absolute;
+  top: 50%;
+  right: auto;
+  left: 50vw;
+  width: max-content;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+.app-shell.is-nav-rail .topbar__brand {
+  left: calc(50vw - var(--rail-width) / 2 - 10px);
+}
+
+.app-shell.is-nav-rail.is-rail-left .topbar__brand {
+  left: calc(50vw + var(--rail-width) / 2 + 10px);
+}
+
+.app-shell.is-nav-rail .topbar__nav,
+.app-shell.is-nav-adaptive-dock .topbar__nav {
+  display: none;
+}
+
+.app-shell.is-nav-adaptive-dock .topbar__actions {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+}
+
+html.has-lightbox .side-rail,
+html.has-lightbox .mobile-dock,
+html.has-lightbox .nav-controls {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+@media (min-width: 600px) {
+  .app-shell.is-nav-rail .favorite-grid,
+  .app-shell.is-nav-adaptive-dock .favorite-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: none;
+  }
+
+  .app-shell.is-nav-rail .favorite-tile,
+  .app-shell.is-nav-adaptive-dock .favorite-tile {
+    grid-area: auto;
+    align-self: auto;
+  }
+
+  .app-shell.is-nav-rail .favorite-tile .favorite-tile__link,
+  .app-shell.is-nav-adaptive-dock .favorite-tile .favorite-tile__link {
+    min-height: 176px;
+  }
+
+  .app-shell.is-nav-rail .device-group__grid,
+  .app-shell.is-nav-adaptive-dock .device-group__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-shell.is-nav-rail .hero,
+  .app-shell.is-nav-adaptive-dock .hero {
+    min-height: auto;
+    padding-bottom: 40px;
+  }
+
+  .app-shell.is-nav-rail .update-book__stage {
+    min-height: 420px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 799px) {
+  .app-shell.is-nav-rail {
+    --rail-width: 72px;
+  }
+}
+
+@media (min-width: 800px) {
+  .app-shell.is-nav-rail {
+    --rail-width: 80px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell.is-nav-rail {
+    --rail-width: 88px;
+  }
+}
+
+@media (max-width: 599px) {
+  .app-shell.is-nav-rail {
+    --rail-width: 64px;
+  }
+
+  .rail-link span {
+    font-size: 9px;
+  }
+}
+
+@media (max-height: 720px) {
+  .side-rail {
+    gap: 7px;
+  }
+
+  .rail-link {
+    min-height: 50px;
+    padding-block: 4px;
+  }
+
+  .rail-link svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .nav-controls .music-toggle,
+  .nav-controls .theme-toggle {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+}
+
+@media (max-height: 580px) {
+
+  .rail-link {
+    min-height: 44px;
+  }
+
+  .rail-link span {
+    font-size: 8px;
+  }
+
+  .nav-controls .music-toggle,
+  .nav-controls .theme-toggle {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-rail,
+  .rail-link,
+  .rail-glass,
+  .nav-controls {
+    transition: none;
+  }
+}
+
+/* Keep offscreen pages and long lists out of the paint path on every
+   viewport; intrinsic sizes preserve scroll geometry while content is skipped. */
+.page-pane,
+.about-updates,
+.article-list,
+.article__card,
+.device-list {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 600px;
+}
+
+.device-tile,
+.favorite-tile,
+.model-row,
+.article-row-glass,
+.article__card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+}
+
+.favorite-tile {
+  contain-intrinsic-size: auto 220px;
 }

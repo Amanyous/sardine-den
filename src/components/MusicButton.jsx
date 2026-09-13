@@ -44,6 +44,18 @@ export default function MusicButton({ tracks = [] }) {
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
 
   useEffect(() => {
+    const closePanel = () => setOpen(false);
+    window.addEventListener('sardine:close-music', closePanel);
+    return () => window.removeEventListener('sardine:close-music', closePanel);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    window.dispatchEvent(new Event('sardine:background-pause'));
+    return () => window.dispatchEvent(new Event('sardine:background-resume'));
+  }, [open]);
+
+  useEffect(() => {
     if (!track?.lrc) {
       setSyncedLyrics([]);
       return undefined;
