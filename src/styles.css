@@ -3045,3 +3045,22 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-cover .music-player__lyrics-list {
   max-height: min(110px, 28dvh);
 }
+
+/* Large touch rails: open the audio panel above the control, not across the
+   bottom of the content area. */
+.app-shell.is-nav-rail:not(.is-nav-cover) .nav-controls--rail .music-panel {
+  top: auto;
+  right: calc(100% + 12px);
+  bottom: calc(100% + 12px);
+  left: auto;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  transform-origin: bottom right;
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover).is-rail-left .nav-controls--rail .music-panel {
+  right: auto;
+  left: calc(100% + 12px);
+  transform-origin: bottom left;
+}
