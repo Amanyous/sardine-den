@@ -2895,3 +2895,92 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-cover.is-rail-left .topbar__brand {
   left: calc(8px + var(--rail-width) + 12px + env(safe-area-inset-left));
 }
+
+/* Flip cover audio panel: fit the panel between the rail and the screen edge. */
+.app-shell.is-nav-cover .liquid-surface.music-panel {
+  width: min(252px, calc(100vw - var(--rail-width) - 20px));
+  border-radius: 18px;
+}
+
+.app-shell.is-nav-cover .liquid-surface.music-panel .liquid-surface__content {
+  padding: 9px;
+}
+
+.app-shell.is-nav-cover .music-player {
+  gap: 8px;
+}
+
+.app-shell.is-nav-cover .music-player__top {
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.app-shell.is-nav-cover .music-player__cover {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+}
+
+.app-shell.is-nav-cover .music-player__info {
+  gap: 3px;
+}
+
+.app-shell.is-nav-cover .music-player__info strong {
+  font-size: 12px;
+}
+
+.app-shell.is-nav-cover .music-player__info small {
+  font-size: 10px;
+}
+
+.app-shell.is-nav-cover .music-player__play {
+  width: 32px;
+  height: 32px;
+  margin-top: 2px;
+}
+
+.app-shell.is-nav-cover .music-player__seek {
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+  gap: 5px;
+}
+
+.app-shell.is-nav-cover .music-player__seek span {
+  font-size: 10px;
+}
+
+.app-shell.is-nav-cover .music-player__range {
+  height: 18px;
+}
+
+.app-shell.is-nav-cover .music-player__lyrics {
+  padding-top: 3px;
+}
+
+.app-shell.is-nav-cover .music-player__lyrics-title {
+  margin-bottom: 5px;
+  font-size: 10px;
+}
+
+.app-shell.is-nav-cover .music-player__lyrics-list {
+  max-height: min(110px, 30vh);
+  padding-right: 2px;
+}
+
+.app-shell.is-nav-cover .music-player__lyrics-list p {
+  padding: 4px 1px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.app-shell.is-nav-cover .music-player__lyrics-list p[data-active='true'] {
+  transform: translateX(2px);
+}
+
+.app-shell.is-nav-cover .music-panel__empty {
+  min-height: 72px;
+  padding: 8px;
+}
+
+.app-shell.is-nav-cover .music-panel__empty p {
+  font-size: 11px;
+}
