@@ -149,11 +149,12 @@ function useNavMode() {
   const side = getNavSide(viewport);
   const viewportDiagonal = Math.hypot(viewport.width, viewport.height);
   const viewportRatio = Math.min(viewport.width, viewport.height) / Math.max(viewport.width, viewport.height);
-  const coverScreen = coarse
+  const touchDevice = coarse || navigator.maxTouchPoints > 0;
+  const coverScreen = touchDevice
     && viewportRatio >= 0.68
-    && viewportDiagonal <= 1300
-    && viewport.width >= 480
-    && viewport.height >= 480;
+    && viewportDiagonal >= 420
+    && viewportDiagonal <= 700
+    && Math.min(viewport.width, viewport.height) >= 260;
 
   if (coverScreen) return { mode: 'rail', side, adaptive: true };
   if (knownFlip) return { mode: 'legacy', side: 'right', adaptive: false };
