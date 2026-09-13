@@ -157,7 +157,7 @@ function useNavMode() {
   const stableRatio = Math.min(viewport.screenWidth, stableHeight) / Math.max(viewport.screenWidth, stableHeight);
   const coverScreen = touchDevice && (
     stableWidth <= 300
-    || (stableRatio >= 0.6 && stableDiagonal >= 350 && stableDiagonal <= 1300)
+    || (stableRatio >= 0.55 && stableDiagonal >= 350)
   );
 
   if (coverScreen) return { mode: 'rail', side, adaptive: true, cover: true };
