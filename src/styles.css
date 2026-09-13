@@ -2650,6 +2650,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .side-rail {
+  top: calc(50% - 18px);
   gap: 4px;
   max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }

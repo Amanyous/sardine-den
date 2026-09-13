@@ -104,6 +104,7 @@ function readNavViewport() {
   return {
     width: window.innerWidth,
     height: window.innerHeight,
+    screenWidth: Number.isFinite(screen?.width) ? screen.width : window.innerWidth,
     screenX: Number.isFinite(window.screenX) ? window.screenX : 0,
     availWidth,
   };
@@ -147,15 +148,10 @@ function useNavMode() {
     && viewport.width / viewport.height <= 1.6;
   const adaptiveLayout = adaptiveTouch || tabletViewport;
   const side = getNavSide(viewport);
-  const viewportDiagonal = Math.hypot(viewport.width, viewport.height);
-  const viewportRatio = Math.min(viewport.width, viewport.height) / Math.max(viewport.width, viewport.height);
   const mobileUa = /Android|iPhone|iPad|Mobile/i.test(ua);
   const touchDevice = coarse || navigator.maxTouchPoints > 0 || mobileUa;
   const coverScreen = touchDevice
-    && viewportRatio >= 0.62
-    && viewportDiagonal >= 380
-    && viewportDiagonal <= 1300
-    && Math.min(viewport.width, viewport.height) >= 300;
+    && Math.min(viewport.screenWidth, viewport.availWidth) <= 300;
 
   if (coverScreen) return { mode: 'rail', side, adaptive: true, cover: true };
   if (knownFlip) return { mode: 'legacy', side: 'right', adaptive: false };
