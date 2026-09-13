@@ -148,11 +148,19 @@ function useNavMode() {
   const adaptiveLayout = adaptiveTouch || tabletViewport;
   const side = getNavSide(viewport);
 
+  if (knownFlip) {
+    const flipCover = viewport.width < 360
+      || (viewport.width < 600 && viewport.height < 600 && viewport.width / viewport.height > 0.7);
+    return flipCover
+      ? { mode: 'rail', side, adaptive: true }
+      : { mode: 'legacy', side: 'right', adaptive: false };
+  }
+
   if (!adaptiveLayout) return { mode: 'legacy', side: 'right', adaptive: false };
   if (viewport.height <= 560) return { mode: 'adaptive-dock', side, adaptive: true };
 
   if (viewport.width < 600) {
-    return knownFlip || knownDuo || knownXiaomi18Fold
+    return knownDuo || knownXiaomi18Fold
       ? { mode: 'rail', side, adaptive: true }
       : { mode: 'legacy', side: 'right', adaptive: false };
   }
