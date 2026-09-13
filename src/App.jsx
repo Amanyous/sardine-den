@@ -100,14 +100,16 @@ function useCompactNav() {
 
 function readNavViewport() {
   const screen = window.screen;
-  const availWidth = Number.isFinite(screen?.availWidth) ? screen.availWidth : window.innerWidth;
+  const rawAvailWidth = Number.isFinite(screen?.availWidth) ? screen.availWidth : 0;
+  const rawScreenWidth = Number.isFinite(screen?.width) ? screen.width : 0;
+  const rawScreenHeight = Number.isFinite(screen?.height) ? screen.height : 0;
   return {
     width: window.innerWidth,
     height: window.innerHeight,
-    screenWidth: Number.isFinite(screen?.width) ? screen.width : window.innerWidth,
-    screenHeight: Number.isFinite(screen?.height) ? screen.height : window.innerHeight,
+    screenWidth: rawScreenWidth > 0 ? rawScreenWidth : window.innerWidth,
+    screenHeight: rawScreenHeight > 0 ? rawScreenHeight : window.innerHeight,
     screenX: Number.isFinite(window.screenX) ? window.screenX : 0,
-    availWidth,
+    availWidth: rawAvailWidth > 0 ? rawAvailWidth : window.innerWidth,
   };
 }
 
@@ -155,7 +157,7 @@ function useNavMode() {
   const stableHeight = viewport.screenHeight;
   const stableDiagonal = Math.hypot(viewport.screenWidth, stableHeight);
   const stableRatio = Math.min(viewport.screenWidth, stableHeight) / Math.max(viewport.screenWidth, stableHeight);
-  const coverScreen = touchDevice && (
+  const coverScreen = touchDevice && stableWidth < 600 && (
     stableWidth <= 300
     || (stableRatio >= 0.55 && stableDiagonal >= 350)
   );
