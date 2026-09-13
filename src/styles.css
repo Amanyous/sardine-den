@@ -2984,3 +2984,64 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-cover .music-panel__empty p {
   font-size: 11px;
 }
+
+/* Auto-fit Flip cover audio panel to the live viewport. */
+.app-shell.is-nav-cover .nav-controls--rail {
+  transform: none;
+}
+
+.app-shell.is-nav-cover .nav-controls--rail .music-panel {
+  position: fixed;
+  top: auto;
+  right: calc(var(--rail-inset) + var(--rail-width) + 8px + env(safe-area-inset-right));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  left: auto;
+  width: min(280px, calc(100vw - var(--rail-width) - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+  transform: translateX(6px) scale(0.96);
+  transform-origin: bottom right;
+}
+
+.app-shell.is-nav-cover .nav-controls--rail .music-panel.is-open {
+  transform: translateX(0) scale(1);
+}
+
+.app-shell.is-nav-cover.is-rail-left .nav-controls--rail .music-panel {
+  right: auto;
+  left: calc(var(--rail-inset) + var(--rail-width) + 8px + env(safe-area-inset-left));
+  transform: translateX(-6px) scale(0.96);
+  transform-origin: bottom left;
+}
+
+.app-shell.is-nav-cover.is-rail-left .nav-controls--rail .music-panel.is-open {
+  transform: translateX(0) scale(1);
+}
+
+.app-shell.is-nav-cover {
+  --cover-cover: clamp(48px, 18vw, 64px);
+}
+
+.app-shell.is-nav-cover .music-player__top {
+  grid-template-columns: var(--cover-cover) minmax(0, 1fr);
+}
+
+.app-shell.is-nav-cover .music-player__cover {
+  width: var(--cover-cover);
+  height: var(--cover-cover);
+}
+
+.app-shell.is-nav-cover .music-player__play {
+  width: clamp(28px, 10vw, 32px);
+  height: clamp(28px, 10vw, 32px);
+}
+
+.app-shell.is-nav-cover .music-player__seek {
+  grid-template-columns: clamp(24px, 8vw, 30px) minmax(0, 1fr) clamp(24px, 8vw, 30px);
+}
+
+.app-shell.is-nav-cover .music-player__lyrics-list {
+  max-height: min(110px, 28dvh);
+}
