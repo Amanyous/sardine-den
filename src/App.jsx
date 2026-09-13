@@ -150,8 +150,13 @@ function useNavMode() {
   const side = getNavSide(viewport);
   const mobileUa = /Android|iPhone|iPad|Mobile/i.test(ua);
   const touchDevice = coarse || navigator.maxTouchPoints > 0 || mobileUa;
-  const coverScreen = touchDevice
-    && Math.min(viewport.screenWidth, viewport.availWidth) <= 300;
+  const stableWidth = Math.min(viewport.screenWidth, viewport.availWidth);
+  const viewportDiagonal = Math.hypot(viewport.width, viewport.height);
+  const viewportRatio = Math.min(viewport.width, viewport.height) / Math.max(viewport.width, viewport.height);
+  const coverScreen = touchDevice && (
+    stableWidth <= 300
+    || (viewportRatio >= 0.6 && viewportDiagonal >= 350 && viewportDiagonal <= 1300)
+  );
 
   if (coverScreen) return { mode: 'rail', side, adaptive: true, cover: true };
   if (knownFlip) return { mode: 'legacy', side: 'right', adaptive: false };
