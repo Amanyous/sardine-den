@@ -3064,3 +3064,38 @@ html.has-lightbox .nav-controls {
   left: calc(100% + 12px);
   transform-origin: bottom left;
 }
+
+/* Large touch rails: keep the audio panel beside the navigation capsule,
+   vertically centered with it instead of anchoring to the bottom control. */
+.app-shell.is-nav-rail:not(.is-nav-cover) .nav-controls--rail {
+  transform: none;
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover) .nav-controls--rail .music-panel {
+  position: fixed;
+  top: 50%;
+  right: calc(var(--rail-inset) + var(--rail-width) + 12px + env(safe-area-inset-right));
+  bottom: auto;
+  left: auto;
+  width: min(336px, calc(100vw - var(--rail-width) - 32px));
+  max-height: min(520px, calc(100dvh - 28px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  transform: translateY(-50%) translateX(6px) scale(0.96);
+  transform-origin: center right;
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover) .nav-controls--rail .music-panel.is-open {
+  transform: translateY(-50%) translateX(0) scale(1);
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover).is-rail-left .nav-controls--rail .music-panel {
+  right: auto;
+  left: calc(var(--rail-inset) + var(--rail-width) + 12px + env(safe-area-inset-left));
+  transform: translateY(-50%) translateX(-6px) scale(0.96);
+  transform-origin: center left;
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover).is-rail-left .nav-controls--rail .music-panel.is-open {
+  transform: translateY(-50%) translateX(0) scale(1);
+}
