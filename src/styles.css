@@ -2650,7 +2650,8 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .side-rail {
-  top: calc(50% - 18px);
+  top: calc(50vh - 18px);
+  top: calc(50svh - 18px);
   gap: 4px;
   max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
@@ -2680,8 +2681,10 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .nav-controls--rail {
+  top: calc(50vh + 58px);
+  top: calc(50svh + 58px);
   right: calc(6px + env(safe-area-inset-right));
-  bottom: calc(8px + env(safe-area-inset-bottom));
+  bottom: auto;
   gap: 4px;
 }
 

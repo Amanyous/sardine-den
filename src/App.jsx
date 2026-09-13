@@ -105,6 +105,7 @@ function readNavViewport() {
     width: window.innerWidth,
     height: window.innerHeight,
     screenWidth: Number.isFinite(screen?.width) ? screen.width : window.innerWidth,
+    screenHeight: Number.isFinite(screen?.height) ? screen.height : window.innerHeight,
     screenX: Number.isFinite(window.screenX) ? window.screenX : 0,
     availWidth,
   };
@@ -151,11 +152,12 @@ function useNavMode() {
   const mobileUa = /Android|iPhone|iPad|Mobile/i.test(ua);
   const touchDevice = coarse || navigator.maxTouchPoints > 0 || mobileUa;
   const stableWidth = Math.min(viewport.screenWidth, viewport.availWidth);
-  const viewportDiagonal = Math.hypot(viewport.width, viewport.height);
-  const viewportRatio = Math.min(viewport.width, viewport.height) / Math.max(viewport.width, viewport.height);
+  const stableHeight = viewport.screenHeight;
+  const stableDiagonal = Math.hypot(viewport.screenWidth, stableHeight);
+  const stableRatio = Math.min(viewport.screenWidth, stableHeight) / Math.max(viewport.screenWidth, stableHeight);
   const coverScreen = touchDevice && (
     stableWidth <= 300
-    || (viewportRatio >= 0.6 && viewportDiagonal >= 350 && viewportDiagonal <= 1300)
+    || (stableRatio >= 0.6 && stableDiagonal >= 350 && stableDiagonal <= 1300)
   );
 
   if (coverScreen) return { mode: 'rail', side, adaptive: true, cover: true };
