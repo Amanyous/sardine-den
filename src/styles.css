@@ -3099,3 +3099,29 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-rail:not(.is-nav-cover).is-rail-left .nav-controls--rail .music-panel.is-open {
   transform: translateY(-50%) translateX(0) scale(1);
 }
+
+/* Align the audio/theme controls with the rail instead of the viewport bottom. */
+.app-shell.is-nav-cover .nav-controls--rail {
+  top: calc(50vh + 84px);
+  top: calc(50svh + 84px);
+  bottom: auto;
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover) .nav-controls--rail {
+  top: calc(50vh + 142px);
+  top: calc(50svh + 142px);
+  right: calc(var(--rail-inset) + (var(--rail-width) - 48px) / 2 + env(safe-area-inset-right));
+  bottom: auto;
+}
+
+.app-shell.is-nav-rail:not(.is-nav-cover).is-rail-left .nav-controls--rail {
+  right: auto;
+  left: calc(var(--rail-inset) + (var(--rail-width) - 48px) / 2 + env(safe-area-inset-left));
+}
+
+@media (max-height: 720px) {
+  .app-shell.is-nav-rail:not(.is-nav-cover) .nav-controls--rail {
+    top: calc(50vh + 122px);
+    top: calc(50svh + 122px);
+  }
+}
