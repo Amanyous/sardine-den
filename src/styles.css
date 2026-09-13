@@ -2618,3 +2618,86 @@ html.has-lightbox .nav-controls {
 .favorite-tile {
   contain-intrinsic-size: auto 220px;
 }
+
+/* Flip cover screens: compact side rail so the nav capsule and controls do not
+   overlap in the small CSS viewport used by Via and full-screen browsers. */
+.app-shell.is-nav-cover {
+  --rail-width: 52px;
+  --rail-inset: 6px;
+}
+
+.app-shell.is-nav-cover .topbar {
+  padding: 6px 8px 0;
+}
+
+.app-shell.is-nav-cover .site-main {
+  padding-top: calc(52px + env(safe-area-inset-top));
+  padding-bottom: 64px;
+}
+
+.app-shell.is-nav-cover .hero {
+  min-height: auto;
+  padding-bottom: 20px;
+}
+
+.app-shell.is-nav-cover .topbar__brand .liquid-surface__content {
+  min-height: 40px;
+  padding: 4px 10px;
+}
+
+.app-shell.is-nav-cover .brand span {
+  font-size: 13px;
+}
+
+.app-shell.is-nav-cover .side-rail {
+  gap: 4px;
+  max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+.app-shell.is-nav-cover .side-rail__nav .liquid-surface__content {
+  padding: 3px;
+}
+
+.app-shell.is-nav-cover .rail-nav {
+  gap: 1px;
+}
+
+.app-shell.is-nav-cover .rail-link {
+  min-height: 34px;
+  gap: 1px;
+  padding: 3px 2px;
+}
+
+.app-shell.is-nav-cover .rail-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+.app-shell.is-nav-cover .rail-link span {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.app-shell.is-nav-cover .nav-controls--rail {
+  right: calc(6px + env(safe-area-inset-right));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  gap: 4px;
+}
+
+.app-shell.is-nav-cover .nav-controls .music-toggle,
+.app-shell.is-nav-cover .nav-controls .theme-toggle {
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+}
+
+.app-shell.is-nav-cover .page-pane,
+.app-shell.is-nav-cover .site-footer {
+  padding-inline-end: calc(10px + var(--rail-width) + 8px + env(safe-area-inset-right));
+}
+
+.app-shell.is-nav-cover.is-rail-left .page-pane,
+.app-shell.is-nav-cover.is-rail-left .site-footer {
+  padding-inline-start: calc(10px + var(--rail-width) + 8px + env(safe-area-inset-left));
+  padding-inline-end: 10px;
+}

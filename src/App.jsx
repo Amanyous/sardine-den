@@ -156,7 +156,7 @@ function useNavMode() {
     && viewportDiagonal <= 700
     && Math.min(viewport.width, viewport.height) >= 260;
 
-  if (coverScreen) return { mode: 'rail', side, adaptive: true };
+  if (coverScreen) return { mode: 'rail', side, adaptive: true, cover: true };
   if (knownFlip) return { mode: 'legacy', side: 'right', adaptive: false };
 
   if (!adaptiveLayout) return { mode: 'legacy', side: 'right', adaptive: false };
@@ -1567,6 +1567,7 @@ export default function App() {
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
   const railNav = navMode.mode === 'rail';
+  const coverNav = Boolean(navMode.cover);
   const adaptiveDock = navMode.mode === 'adaptive-dock';
   const shellCompact = compactNav || railNav || adaptiveDock;
   const [theme, setTheme] = useState(() => {
@@ -1961,7 +1962,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell ${ready ? 'is-ready' : 'is-booting'} ${shellCompact ? 'is-nav-compact' : ''} ${railNav ? 'is-nav-rail' : ''} ${adaptiveDock ? 'is-nav-adaptive-dock' : ''} ${railNav ? (navMode.side === 'left' ? 'is-rail-left' : 'is-rail-right') : ''}`}
+      className={`app-shell ${ready ? 'is-ready' : 'is-booting'} ${shellCompact ? 'is-nav-compact' : ''} ${railNav ? 'is-nav-rail' : ''} ${coverNav ? 'is-nav-cover' : ''} ${adaptiveDock ? 'is-nav-adaptive-dock' : ''} ${railNav ? (navMode.side === 'left' ? 'is-rail-left' : 'is-rail-right') : ''}`}
     >
       <a className="skip-link" href="#main">
         跳到主要内容
