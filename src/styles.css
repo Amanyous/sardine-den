@@ -2701,3 +2701,12 @@ html.has-lightbox .nav-controls {
   padding-inline-start: calc(10px + var(--rail-width) + 8px + env(safe-area-inset-left));
   padding-inline-end: 10px;
 }
+
+.app-shell.is-nav-cover .nav-controls--rail {
+  right: calc(var(--rail-inset) + (var(--rail-width) - 30px) / 2 + env(safe-area-inset-right));
+}
+
+.app-shell.is-nav-cover .topbar__brand,
+.app-shell.is-nav-cover.is-rail-left .topbar__brand {
+  left: 50vw;
+}
