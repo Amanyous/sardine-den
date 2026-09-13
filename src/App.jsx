@@ -147,14 +147,16 @@ function useNavMode() {
     && viewport.width / viewport.height <= 1.6;
   const adaptiveLayout = adaptiveTouch || tabletViewport;
   const side = getNavSide(viewport);
+  const viewportDiagonal = Math.hypot(viewport.width, viewport.height);
+  const viewportRatio = Math.min(viewport.width, viewport.height) / Math.max(viewport.width, viewport.height);
+  const coverScreen = coarse
+    && viewportRatio >= 0.68
+    && viewportDiagonal <= 1300
+    && viewport.width >= 480
+    && viewport.height >= 480;
 
-  if (knownFlip) {
-    const flipCover = viewport.width < 360
-      || (viewport.width < 600 && viewport.height < 600 && viewport.width / viewport.height > 0.7);
-    return flipCover
-      ? { mode: 'rail', side, adaptive: true }
-      : { mode: 'legacy', side: 'right', adaptive: false };
-  }
+  if (coverScreen) return { mode: 'rail', side, adaptive: true };
+  if (knownFlip) return { mode: 'legacy', side: 'right', adaptive: false };
 
   if (!adaptiveLayout) return { mode: 'legacy', side: 'right', adaptive: false };
   if (viewport.height <= 560) return { mode: 'adaptive-dock', side, adaptive: true };
