@@ -2882,3 +2882,12 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-cover .device-tile__model {
   font-size: 10px;
 }
+
+.app-shell.is-nav-cover .topbar__brand {
+  left: calc(8px + env(safe-area-inset-left));
+  transform: translateY(-50%);
+}
+
+.app-shell.is-nav-cover.is-rail-left .topbar__brand {
+  left: calc(8px + var(--rail-width) + 12px + env(safe-area-inset-left));
+}
