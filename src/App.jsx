@@ -1047,7 +1047,7 @@ function ArticleImage({ block }) {
       ],
       {
         duration: 420,
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
         fill: 'forwards',
       },
     );

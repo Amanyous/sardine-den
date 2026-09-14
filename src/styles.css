@@ -6,6 +6,7 @@
   --ease-hig: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-return: cubic-bezier(0.65, 0, 0.35, 1);
   --bg: #fff1f6;
   --bg-deep: #ffe2ed;
   --ink: #24111b;
