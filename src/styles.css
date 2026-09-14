@@ -3125,3 +3125,20 @@ html.has-lightbox .nav-controls {
     top: calc(50svh + 122px);
   }
 }
+
+/* Lightbox close: remove the viewport scrollbar and fade the close button
+   immediately while the image continues its FLIP return animation. */
+.article-lightbox__viewport {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.article-lightbox__viewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.article-lightbox.is-closing .article-lightbox__close {
+  opacity: 0;
+  pointer-events: none;
+}

@@ -1003,6 +1003,7 @@ function EmptyState({ icon: Icon, title, lead }) {
 function ArticleImage({ block }) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
   const thumbRef = useRef(null);
   const lightboxImageRef = useRef(null);
   const closeRef = useRef(null);
@@ -1016,6 +1017,7 @@ function ArticleImage({ block }) {
 
   const closeImage = () => {
     if (!visible) return;
+    setClosing(true);
     const image = lightboxImageRef.current;
     const thumb = thumbRef.current;
     if (reduced || !image || !thumb) {
@@ -1064,6 +1066,7 @@ function ArticleImage({ block }) {
   const openImage = () => {
     if (!thumbRef.current) return;
     stopAnimation();
+    setClosing(false);
     setOpen(true);
   };
 
@@ -1159,7 +1162,7 @@ function ArticleImage({ block }) {
       {open
         ? createPortal(
             <div
-              className={`article-lightbox ${visible ? 'is-visible' : ''}`}
+              className={`article-lightbox ${visible ? 'is-visible' : ''} ${closing ? 'is-closing' : ''}`}
               role="dialog"
               aria-modal="true"
               aria-label="原图预览"
