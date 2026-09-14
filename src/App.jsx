@@ -1054,18 +1054,12 @@ function ArticleImage({ block }) {
       .then(() => {
         if (animationRef.current !== animation) return;
         animationRef.current = null;
-        image.style.transform = '';
-        image.style.transformOrigin = '';
-        image.style.willChange = '';
         setVisible(false);
         setOpen(false);
       })
       .catch(() => {
         if (animationRef.current !== animation) return;
         animationRef.current = null;
-        image.style.transform = '';
-        image.style.transformOrigin = '';
-        image.style.willChange = '';
         setVisible(false);
         setOpen(false);
       });
