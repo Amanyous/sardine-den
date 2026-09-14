@@ -3142,3 +3142,14 @@ html.has-lightbox .nav-controls {
   opacity: 0;
   pointer-events: none;
 }
+
+/* Lightbox background transition: fade in on open, delay fade out until the
+   image has nearly returned to its thumbnail position. */
+.article-lightbox::before {
+  transition: opacity 320ms var(--ease-hig);
+}
+
+.article-lightbox.is-closing::before {
+  opacity: 0;
+  transition: opacity 180ms var(--ease-hig) 240ms;
+}
