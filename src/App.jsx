@@ -1028,6 +1028,7 @@ function ArticleImage({ block }) {
     const currentTransform = getComputedStyle(image).transform;
     stopAnimation();
     image.style.transformOrigin = 'top left';
+    image.style.willChange = 'transform';
     const base = image.getBoundingClientRect();
     const target = thumb.getBoundingClientRect();
     if (!base.width || !base.height) {
@@ -1037,7 +1038,6 @@ function ArticleImage({ block }) {
     }
 
     const endTransform = `translate3d(${target.left - base.left}px, ${target.top - base.top}px, 0) scale(${target.width / base.width}, ${target.height / base.height})`;
-    setVisible(false);
     const animation = image.animate(
       [
         { transform: currentTransform === 'none' ? 'none' : currentTransform },
@@ -1056,9 +1056,19 @@ function ArticleImage({ block }) {
         animationRef.current = null;
         image.style.transform = '';
         image.style.transformOrigin = '';
+        image.style.willChange = '';
+        setVisible(false);
         setOpen(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (animationRef.current !== animation) return;
+        animationRef.current = null;
+        image.style.transform = '';
+        image.style.transformOrigin = '';
+        image.style.willChange = '';
+        setVisible(false);
+        setOpen(false);
+      });
   };
 
   const openImage = () => {
