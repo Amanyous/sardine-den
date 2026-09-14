@@ -4,6 +4,8 @@
   color-scheme: only light;
   --ease-glass: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-hig: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --bg: #fff1f6;
   --bg-deep: #ffe2ed;
   --ink: #24111b;
@@ -3146,10 +3148,10 @@ html.has-lightbox .nav-controls {
 /* Lightbox background transition: fade in on open, delay fade out until the
    image has nearly returned to its thumbnail position. */
 .article-lightbox::before {
-  transition: opacity 320ms var(--ease-hig);
+  transition: opacity 320ms var(--ease-standard);
 }
 
 .article-lightbox.is-closing::before {
   opacity: 0;
-  transition: opacity 180ms var(--ease-hig) 240ms;
+  transition: opacity 200ms var(--ease-standard) 220ms;
 }
