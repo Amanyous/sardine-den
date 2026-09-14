@@ -1020,7 +1020,6 @@ function ArticleImage({ block }) {
     const thumb = thumbRef.current;
     if (reduced || !image || !thumb) {
       stopAnimation();
-      setVisible(false);
       setOpen(false);
       return;
     }
@@ -1032,7 +1031,6 @@ function ArticleImage({ block }) {
     const base = image.getBoundingClientRect();
     const target = thumb.getBoundingClientRect();
     if (!base.width || !base.height) {
-      setVisible(false);
       setOpen(false);
       return;
     }
@@ -1054,13 +1052,11 @@ function ArticleImage({ block }) {
       .then(() => {
         if (animationRef.current !== animation) return;
         animationRef.current = null;
-        setVisible(false);
         setOpen(false);
       })
       .catch(() => {
         if (animationRef.current !== animation) return;
         animationRef.current = null;
-        setVisible(false);
         setOpen(false);
       });
   };
