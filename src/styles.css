@@ -26,6 +26,15 @@
   --page-in-x: 10vw;
   --page-out-y: 0px;
   --page-in-y: 0px;
+
+  /* 6-step type scale: 12 / 14 / 16 / 20 / 28 / 44 */
+  --text-caption: 12px;
+  --text-sm: 14px;
+  --text-body: 16px;
+  --text-title: 20px;
+  --text-h2: 28px;
+  --text-h1: 44px;
+  --lh-cjk: 1.7;
 }
 
 :root[data-theme='dark'] {
@@ -44,6 +53,7 @@
   --accent-2: #65b8ff;
   --on-accent: #2a0d19;
   --shadow-color: 0, 0, 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 @keyframes theme-reveal {
@@ -321,13 +331,11 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans SC',
-    sans-serif;
-  font-size: 16px;
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  font-size: var(--text-body);
   letter-spacing: 0;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  line-height: var(--lh-cjk);
   text-rendering: optimizeLegibility;
 }
 
@@ -490,8 +498,8 @@ p {
 }
 
 .brand span {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .desktop-nav {
@@ -530,7 +538,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 42px;
+  height: 44px;
   padding: 0 12px;
   border-radius: 999px;
   color: var(--muted);
@@ -601,9 +609,9 @@ p {
 .theme-toggle {
   position: relative;
   display: grid;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 50%;
@@ -711,7 +719,7 @@ p {
   grid-template-columns: 1fr;
   justify-items: center;
   align-items: center;
-  min-height: calc(100dvh - 150px);
+  min-height: calc(100dvh - 170px);
   text-align: center;
 }
 
@@ -724,8 +732,8 @@ p {
 .hero__kicker {
   margin: 0 0 18px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-caption);
+  font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -758,8 +766,8 @@ p {
   align-items: center;
   gap: 4px;
   margin: 0 0 18px;
-  font-size: 48px;
-  font-weight: 800;
+  font-size: 44px;
+  font-weight: 600;
   line-height: 1.08;
   letter-spacing: 0;
 }
@@ -773,25 +781,25 @@ p {
   max-width: 600px;
   margin: 0 auto 30px;
   color: var(--muted);
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.7;
 }
 
 .section {
-  padding-top: 84px;
+  padding-top: 64px;
 }
 
 .section-heading h2 {
   margin: 0;
-  font-size: 30px;
-  font-weight: 800;
+  font-size: var(--text-h2);
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .model-row {
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--surface);
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
@@ -804,11 +812,12 @@ p {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
   margin-top: 30px;
 }
 
 .favorite-tile {
+  display: grid;
   min-width: 0;
   transition: transform 0.34s var(--ease-glass);
 }
@@ -819,6 +828,7 @@ p {
 
 .favorite-tile__link {
   display: block;
+  height: 100%;
   min-height: 176px;
   padding: 24px 22px 22px;
 }
@@ -832,16 +842,16 @@ p {
 
 .favorite-tile strong {
   display: block;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .favorite-tile p {
   margin: 10px 0 0;
   color: var(--muted);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.7;
 }
 
 .favorite-tile:hover {
@@ -851,6 +861,7 @@ p {
 @media (min-width: 761px) {
   .favorite-grid {
     grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
     grid-template-areas:
       'one one one one one one one two two two two two'
       'three three three three three four four four four four four four';
@@ -862,26 +873,14 @@ p {
 
   .favorite-tile:nth-child(2) {
     grid-area: two;
-    align-self: end;
   }
 
   .favorite-tile:nth-child(3) {
     grid-area: three;
-    align-self: end;
   }
 
   .favorite-tile:nth-child(4) {
     grid-area: four;
-  }
-
-  .favorite-tile:nth-child(1) .favorite-tile__link,
-  .favorite-tile:nth-child(4) .favorite-tile__link {
-    min-height: 212px;
-  }
-
-  .favorite-tile:nth-child(2) .favorite-tile__link,
-  .favorite-tile:nth-child(3) .favorite-tile__link {
-    min-height: 168px;
   }
 }
 
@@ -910,15 +909,15 @@ p {
   height: 52px;
   margin: 0 auto 18px;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 16px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
 }
 
 .empty-state h2 {
   margin: 0 0 10px;
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -952,16 +951,16 @@ p {
   display: inline-block;
   margin-bottom: 14px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-caption);
+  font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .page-intro h1 {
   margin: 0 0 14px;
-  font-size: 52px;
-  font-weight: 800;
+  font-size: 44px;
+  font-weight: 600;
   line-height: 1.08;
   letter-spacing: 0;
 }
@@ -969,7 +968,7 @@ p {
 .page-intro p {
   margin: 0 auto;
   color: var(--muted);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.7;
 }
 
@@ -1002,8 +1001,8 @@ p {
 
 .profile-card h2 {
   margin: 0 0 10px;
-  font-size: 32px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -1024,18 +1023,20 @@ p {
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 14px;
+  /* 18px card padding + 26px sheet padding: line the heading up with the sheet text */
+  padding-inline: 44px;
 }
 
 .about-updates__heading h2 {
   margin: 0;
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .about-updates__heading span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .update-book-card .liquid-surface__content {
@@ -1087,6 +1088,7 @@ p {
 
 .update-book.is-moving .update-book__sheet {
   will-change: transform;
+  transition: opacity 0.2s ease;
 }
 
 .update-book.is-dragging .update-book__sheet {
@@ -1135,7 +1137,7 @@ p {
   border-radius: 999px;
   color: var(--accent);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
 }
 
@@ -1147,8 +1149,8 @@ p {
 
 .update-book__entry h3 {
   margin: 0;
-  font-size: clamp(24px, 3vw, 32px);
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.15;
 }
@@ -1166,7 +1168,7 @@ p {
   position: relative;
   padding-left: 18px;
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 .update-book__items li::before {
@@ -1226,7 +1228,7 @@ p {
 .update-book__progress {
   min-width: 48px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -1262,7 +1264,7 @@ p {
 }
 
 .model-row strong {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .model-row span {
@@ -1273,7 +1275,7 @@ p {
 .article-list {
   display: grid;
   gap: 14px;
-  max-width: 880px;
+  max-width: 720px;
   margin: 26px auto 0;
 }
 
@@ -1294,7 +1296,7 @@ p {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto auto;
-  column-gap: 18px;
+  column-gap: 24px;
   align-items: center;
   width: 100%;
   padding: 22px 24px;
@@ -1323,8 +1325,8 @@ p {
   grid-column: 1;
   grid-row: 2;
   margin-top: 6px;
-  font-size: 19px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -1348,13 +1350,13 @@ p {
 }
 
 .article-row__date {
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .article {
   width: 100%;
-  max-width: 880px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
@@ -1389,8 +1391,8 @@ p {
 
 .article__title {
   margin: 0 0 12px;
-  font-size: 38px;
-  font-weight: 800;
+  font-size: 44px;
+  font-weight: 600;
   line-height: 1.12;
   letter-spacing: 0;
 }
@@ -1408,7 +1410,7 @@ p {
 .article__summary {
   max-width: 640px;
   margin: 0 auto;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.7;
 }
 
@@ -1423,15 +1425,15 @@ p {
 .article__p {
   margin: 18px 0;
   color: var(--ink);
-  font-size: 16.5px;
+  font-size: 16px;
   line-height: 1.85;
 }
 
 .article__h2 {
   margin: 40px 0 4px;
   padding-top: 26px;
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1.3;
   letter-spacing: 0;
 }
@@ -1459,7 +1461,7 @@ p {
   margin: 0 auto;
   padding: 0;
   border: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   background: transparent;
   cursor: zoom-in;
 }
@@ -1481,7 +1483,7 @@ p {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid var(--line);
   box-shadow: 0 16px 36px rgba(var(--shadow-color), 0.14);
   transition: transform 0.34s var(--ease-hig), box-shadow 0.34s var(--ease-hig);
@@ -1496,7 +1498,7 @@ p {
   margin-top: 12px;
   color: var(--muted);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
   text-align: center;
 }
 
@@ -1504,10 +1506,10 @@ p {
   margin: 30px 0;
   padding: 18px 20px;
   border-left: 3px solid var(--accent);
-  border-radius: 14px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--accent) 9%, transparent);
   color: var(--ink);
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 1.8;
 }
 
@@ -1552,7 +1554,7 @@ p {
   width: 100%;
   max-height: calc(100dvh - 122px);
   overflow: auto;
-  border-radius: 18px;
+  border-radius: 16px;
   overscroll-behavior: contain;
   touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
@@ -1563,7 +1565,7 @@ p {
   max-width: 100%;
   max-height: calc(100dvh - 122px);
   height: auto;
-  border-radius: 18px;
+  border-radius: 16px;
   background: transparent;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
   object-fit: contain;
@@ -1618,12 +1620,12 @@ p {
     width: max(100%, 760px);
     max-width: none;
     max-height: none;
-    border-radius: 14px;
+    border-radius: 12px;
   }
 
   .article-lightbox__viewport {
     max-height: calc(100dvh - 112px);
-    border-radius: 14px;
+    border-radius: 12px;
     place-items: center start;
   }
 }
@@ -1649,7 +1651,7 @@ p {
 .device-group__head h2 {
   margin: 0;
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -1677,22 +1679,18 @@ p {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--surface-strong);
+  background: transparent;
 }
 
-.device-tile__media::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, color-mix(in srgb, var(--surface-strong) 74%, transparent), transparent 46%);
-  content: '';
-  pointer-events: none;
-}
-
+/* ponytail: multiply drops the white studio backdrop of the product shots so the
+   media plate stops reading as a seam against the card. Switch to a mask if a
+   photo ever ships with a non-white background. */
 .device-tile__media img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  mix-blend-mode: multiply;
   transition: transform 0.65s var(--ease-glass);
 }
 
@@ -1732,15 +1730,15 @@ p {
 
 .device-tile h3 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .device-tile__role {
   margin: 0;
   color: var(--ink);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -1754,15 +1752,15 @@ p {
 
 .device-tile__spec {
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .device-tile__source {
   display: grid;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 50%;
@@ -1793,7 +1791,7 @@ p {
 .site-footer p {
   margin: 22px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .mobile-dock {
@@ -1894,7 +1892,7 @@ p {
 }
 
 .dock-link__label {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
   letter-spacing: 0;
   opacity: 0.9;
@@ -1936,8 +1934,8 @@ p {
 
 .welcome-overlay strong {
   padding-inline: 20px;
-  font-size: 34px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 600;
   letter-spacing: 0;
   text-align: center;
 }
@@ -1979,11 +1977,11 @@ p {
 
   .hero__title-pending,
   .page-intro h1 {
-    font-size: 38px;
+    font-size: 28px;
   }
 
   .hero__intro {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .profile-card .liquid-surface__content {
@@ -2024,7 +2022,7 @@ p {
   }
 
   .article__title {
-    font-size: 29px;
+    font-size: 28px;
   }
 
   .article-row {
@@ -2034,7 +2032,7 @@ p {
   }
 
   .article-row__summary {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .article__body {
@@ -2042,16 +2040,16 @@ p {
   }
 
   .article__h2 {
-    font-size: 21px;
+    font-size: 20px;
   }
 
   .article__p,
   .article__list li {
-    font-size: 15.5px;
+    font-size: 16px;
   }
 
   .update-book__items li {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
@@ -2342,8 +2340,8 @@ p {
 }
 
 .rail-link span {
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.05;
 }
 
@@ -2543,7 +2541,7 @@ html.has-lightbox .nav-controls {
   }
 
   .rail-link span {
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 
@@ -2564,9 +2562,9 @@ html.has-lightbox .nav-controls {
 
   .nav-controls .music-toggle,
   .nav-controls .theme-toggle {
-    width: 42px;
-    height: 42px;
-    flex-basis: 42px;
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
   }
 }
 
@@ -2577,14 +2575,14 @@ html.has-lightbox .nav-controls {
   }
 
   .rail-link span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .nav-controls .music-toggle,
   .nav-controls .theme-toggle {
-    width: 38px;
-    height: 38px;
-    flex-basis: 38px;
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
   }
 }
 
@@ -2649,7 +2647,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .brand span {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .app-shell.is-nav-cover .side-rail {
@@ -2679,7 +2677,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .rail-link span {
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1;
 }
 
@@ -2725,20 +2723,20 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .eyebrow {
   margin-bottom: 6px;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.1em;
 }
 
 .app-shell.is-nav-cover .page-intro h1,
 .app-shell.is-nav-cover .hero__title-pending {
   margin-bottom: 8px;
-  font-size: 26px;
+  font-size: 28px;
   line-height: 1.05;
 }
 
 .app-shell.is-nav-cover .page-intro p,
 .app-shell.is-nav-cover .hero__intro {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
@@ -2749,7 +2747,7 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-cover .section-heading h2,
 .app-shell.is-nav-cover .about-updates__heading h2,
 .app-shell.is-nav-cover .device-group__head h2 {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .app-shell.is-nav-cover .favorite-tile__link {
@@ -2759,7 +2757,7 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .favorite-tile__domain {
   margin-bottom: 8px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .favorite-tile strong {
@@ -2787,7 +2785,7 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .profile-card h2 {
   margin-bottom: 4px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .app-shell.is-nav-cover .profile-card p {
@@ -2805,7 +2803,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .about-updates__heading span {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .update-book__stage {
@@ -2818,16 +2816,16 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .update-book__entry-head {
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .update-book__entry h3 {
   margin: 8px 0;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .app-shell.is-nav-cover .update-book__items li {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -2842,21 +2840,21 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .article-row__tag {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .article-row__title {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .app-shell.is-nav-cover .article-row__summary {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
 .app-shell.is-nav-cover .article-row__date {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .device-list {
@@ -2869,7 +2867,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .device-group__head span {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .device-tile__body {
@@ -2887,7 +2885,7 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .device-tile__spec,
 .app-shell.is-nav-cover .device-tile__model {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .topbar__brand {
@@ -2902,7 +2900,7 @@ html.has-lightbox .nav-controls {
 /* Flip cover audio panel: fit the panel between the rail and the screen edge. */
 .app-shell.is-nav-cover .liquid-surface.music-panel {
   width: min(252px, calc(100vw - var(--rail-width) - 20px));
-  border-radius: 18px;
+  border-radius: 16px;
 }
 
 .app-shell.is-nav-cover .liquid-surface.music-panel .liquid-surface__content {
@@ -2921,7 +2919,7 @@ html.has-lightbox .nav-controls {
 .app-shell.is-nav-cover .music-player__cover {
   width: 64px;
   height: 64px;
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .app-shell.is-nav-cover .music-player__info {
@@ -2933,13 +2931,12 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .music-player__info small {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .music-player__play {
-  width: 32px;
-  height: 32px;
-  margin-top: 2px;
+  width: 44px;
+  height: 44px;
 }
 
 .app-shell.is-nav-cover .music-player__seek {
@@ -2948,7 +2945,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .music-player__seek span {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .music-player__range {
@@ -2961,7 +2958,7 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .music-player__lyrics-title {
   margin-bottom: 5px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .app-shell.is-nav-cover .music-player__lyrics-list {
@@ -2971,12 +2968,8 @@ html.has-lightbox .nav-controls {
 
 .app-shell.is-nav-cover .music-player__lyrics-list p {
   padding: 4px 1px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
-}
-
-.app-shell.is-nav-cover .music-player__lyrics-list p[data-active='true'] {
-  transform: translateX(2px);
 }
 
 .app-shell.is-nav-cover .music-panel__empty {
@@ -2985,7 +2978,7 @@ html.has-lightbox .nav-controls {
 }
 
 .app-shell.is-nav-cover .music-panel__empty p {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Auto-fit Flip cover audio panel to the live viewport. */
@@ -3155,4 +3148,12 @@ html.has-lightbox .nav-controls {
 .article-lightbox.is-closing::before {
   opacity: 0;
   transition: opacity 200ms var(--ease-standard) 220ms;
+}
+
+/* ponytail: the update book is one small, visible section. Its content changes
+   every page turn, so containment only forces repaint and scroll anchoring. */
+.about-updates {
+  content-visibility: visible;
+  contain: none;
+  overflow-anchor: none;
 }

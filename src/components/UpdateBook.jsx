@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const AXIS_MIN = 12;
@@ -31,12 +31,16 @@ export default function UpdateBook({ entries = [] }) {
   const gestureRef = useRef(null);
   const dragOffsetRef = useRef(0);
   const wheelAccumRef = useRef(0);
+  const wheelLockRef = useRef(false);
+  const wheelUnlockRef = useRef(null);
   const stageRef = useRef(null);
   const sheetRefs = useRef([]);
   const indexRef = useRef(0);
   const movingTimerRef = useRef(null);
   const moveFrameRef = useRef(0);
   const pendingXRef = useRef(0);
+  const pendingSnapRef = useRef(null);
+  const turnAnimationsRef = useRef([]);
   const count = entries.length;
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -62,15 +66,21 @@ export default function UpdateBook({ entries = [] }) {
   const beginSnap = (nextIndex) => {
     if (!count) return;
     const target = Math.min(count - 1, Math.max(0, nextIndex));
+    const fromIndex = indexRef.current;
+    const fromDrag = dragOffsetRef.current;
     window.clearTimeout(movingTimerRef.current);
     wheelAccumRef.current = 0;
     resetDrag();
 
-    if (target !== indexRef.current) {
-      indexRef.current = target;
-      if (sheetRefs.current[target]) sheetRefs.current[target].scrollTop = 0;
-      setIndex(target);
+    if (target === indexRef.current) {
+      setMoving(false);
+      return;
     }
+
+    pendingSnapRef.current = { fromIndex, fromDrag };
+    indexRef.current = target;
+    if (sheetRefs.current[target]) sheetRefs.current[target].scrollTop = 0;
+    setIndex(target);
 
     if (reduced) {
       setMoving(false);
@@ -82,6 +92,30 @@ export default function UpdateBook({ entries = [] }) {
       setMoving(false);
     }, SNAP_DURATION + 40);
   };
+
+  useLayoutEffect(() => {
+    const pending = pendingSnapRef.current;
+    if (!pending || reduced) return;
+    pendingSnapRef.current = null;
+    turnAnimationsRef.current.forEach((animation) => animation.cancel());
+    turnAnimationsRef.current = entries.flatMap((entry, entryIndex) => {
+      const node = sheetRefs.current[entryIndex];
+      if (!node) return [];
+      const fromDelta = entryIndex - pending.fromIndex;
+      const toDelta = entryIndex - index;
+      if (Math.abs(fromDelta) > 1 && Math.abs(toDelta) > 1) return [];
+      const frame = (delta, drag = 0) => `translate3d(calc(${delta * 112}% + ${drag}px), 0, 0) rotateY(${delta * -9}deg) scale(${Math.max(
+        0.92,
+        1 - Math.abs(delta) * 0.03,
+      )})`;
+      return [
+        node.animate(
+          [{ transform: frame(fromDelta, pending.fromDrag) }, { transform: frame(toDelta) }],
+          { duration: SNAP_DURATION, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' },
+        ),
+      ];
+    });
+  }, [entries, index, reduced]);
 
   const settleDrag = (dx, velocity = 0) => {
     const width = stageRef.current?.clientWidth || 320;
@@ -111,7 +145,9 @@ export default function UpdateBook({ entries = [] }) {
 
   useEffect(() => () => {
     window.clearTimeout(movingTimerRef.current);
+    window.clearTimeout(wheelUnlockRef.current);
     if (moveFrameRef.current) cancelAnimationFrame(moveFrameRef.current);
+    turnAnimationsRef.current.forEach((animation) => animation.cancel());
   }, []);
 
   if (!count) return null;
@@ -218,6 +254,11 @@ export default function UpdateBook({ entries = [] }) {
     const absX = Math.abs(event.deltaX);
     const absY = Math.abs(event.deltaY);
     if (absX < absY * 1.4 || absX < 8) return;
+    window.clearTimeout(wheelUnlockRef.current);
+    wheelUnlockRef.current = window.setTimeout(() => {
+      wheelLockRef.current = false;
+    }, 80);
+    if (wheelLockRef.current) return;
     if (wheelAccumRef.current && Math.sign(wheelAccumRef.current) !== Math.sign(event.deltaX)) {
       wheelAccumRef.current = 0;
     }
@@ -225,6 +266,7 @@ export default function UpdateBook({ entries = [] }) {
     if (Math.abs(wheelAccumRef.current) < 36) return;
     const direction = wheelAccumRef.current > 0 ? 1 : -1;
     wheelAccumRef.current = 0;
+    wheelLockRef.current = true;
     go(direction);
   };
 

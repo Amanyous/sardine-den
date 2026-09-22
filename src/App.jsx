@@ -1299,7 +1299,7 @@ function HomePage({ ready }) {
                   ease="expo.out"
                   fillEase="expo.out"
                   fontSize={54}
-                  fontWeight={800}
+                  fontWeight={600}
                   letterSpacing={0}
                 />
                 <StrokeText
@@ -1314,7 +1314,7 @@ function HomePage({ ready }) {
                   ease="expo.out"
                   fillEase="expo.out"
                   fontSize={80}
-                  fontWeight={800}
+                  fontWeight={600}
                   letterSpacing={0}
                 />
               </div>
