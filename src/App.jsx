@@ -1,21 +1,28 @@
 import { lazy, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import {
+  Activity,
   ArrowLeft,
+  BookOpen,
   ChevronRight,
+  Code2,
   ExternalLink,
   FileText,
+  Fish,
+  FolderGit2,
   Github,
   Home,
   Laptop,
   Mail,
   Moon,
+  RefreshCw,
   Sparkles,
+  Star,
   Sun,
   UserRound,
+  Users,
   X,
 } from 'lucide-react';
-import GlassIcons from './components/reactbits/GlassIcons.jsx';
 import LiquidSurface from './components/LiquidSurface.jsx';
 import GlassDefs from './components/GlassDefs.jsx';
 import MusicButton from './components/MusicButton.jsx';
@@ -61,6 +68,57 @@ const contactItems = [
     icon: <Mail size={22} strokeWidth={1.8} aria-hidden="true" />,
   },
 ];
+
+const profileTags = ['抽象', '神经', '抖m', '4i'];
+
+const aboutName = '其名为沙丁鱼的猫.';
+
+const GITHUB_CACHE_KEY = 'sardine-den:github-summary:v2';
+const GITHUB_CACHE_TTL = 15 * 60 * 1000;
+
+const githubFallback = {
+  publicRepos: 2,
+  stars: 0,
+  followers: 0,
+  idleTime: '24 小时 2 分',
+  lastCommit: '1 天前',
+  lastCommitAt: '2026-09-22T15:24:22Z',
+  activeRepo: 'sardine-den',
+  updatedAt: '23:26',
+  languages: [
+    { name: 'JavaScript', percent: 93 },
+    { name: 'HTML', percent: 4 },
+    { name: 'CSS', percent: 3 },
+  ],
+  recentRepos: [
+    {
+      name: 'sardine-den',
+      description: '沙丁鱼の小窝｜记录模型、设备、文章与日常碎片的个人主页喵',
+      language: 'JavaScript',
+      stars: 0,
+      updated: '1 天前',
+      href: 'https://github.com/Amanyous/sardine-den',
+    },
+    {
+      name: 'cost-meter-for-codex',
+      description: 'cost-meter for codex',
+      language: 'JavaScript',
+      stars: 0,
+      updated: '2 天前',
+      href: 'https://github.com/Amanyous/cost-meter-for-codex',
+    },
+  ],
+};
+
+const languageColors = {
+  Rust: '#e37d59',
+  JavaScript: '#f2cf3c',
+  TypeScript: '#4f8fd8',
+  Python: '#5c9bd6',
+  CSS: '#b879dd',
+  HTML: '#ef8d72',
+  其他: '#98a2b3',
+};
 
 const THEME_CYCLE = ['light', 'dark'];
 const THEME_META = {
@@ -1352,6 +1410,294 @@ function HomePage({ ready }) {
   );
 }
 
+function formatRelativeTime(value) {
+  if (!value) return githubFallback.lastCommit;
+  const minutes = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} 天前`;
+  return `${Math.round(days / 30)} 个月前`;
+}
+
+function formatIdleTime(value, now = Date.now()) {
+  if (!value) return githubFallback.idleTime;
+  const seconds = Math.max(0, Math.floor((now - new Date(value).getTime()) / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+}
+
+function useIdleTime(value) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return formatIdleTime(value, now);
+}
+
+function formatClock(date = new Date()) {
+  return new Intl.DateTimeFormat('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
+function readGithubCache() {
+  try {
+    const cached = JSON.parse(window.sessionStorage.getItem(GITHUB_CACHE_KEY));
+    if (cached?.savedAt && Date.now() - cached.savedAt < GITHUB_CACHE_TTL) return cached.data;
+  } catch {
+    void 0;
+  }
+  return null;
+}
+
+function buildGithubSummary(user, repos, languageMaps = []) {
+  const sorted = [...repos].sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+  const latest = sorted[0];
+  const languageBytes = sorted.reduce((counts, repo, index) => {
+    const repoLanguages = languageMaps[index] || (repo.language ? { [repo.language]: 1 } : {});
+    Object.entries(repoLanguages).forEach(([language, bytes]) => {
+      counts[language] = (counts[language] || 0) + bytes;
+    });
+    return counts;
+  }, {});
+  const languageTotal = Object.values(languageBytes).reduce((sum, bytes) => sum + bytes, 0);
+  const sortedLanguages = Object.entries(languageBytes)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+  let allocated = 0;
+  const languages = sortedLanguages.map(([name, bytes], index) => {
+    const remaining = 100 - allocated;
+    const percent = index === sortedLanguages.length - 1
+      ? remaining
+      : Math.round((bytes / languageTotal) * 100);
+    allocated += percent;
+    return { name, percent: Math.max(0, percent) };
+  });
+
+  return {
+    publicRepos: user.public_repos ?? repos.length,
+    stars: repos.reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0),
+    followers: user.followers ?? 0,
+    idleTime: formatIdleTime(latest?.pushed_at),
+    lastCommit: formatRelativeTime(latest?.pushed_at),
+    lastCommitAt: latest?.pushed_at || githubFallback.lastCommitAt,
+    activeRepo: latest?.name || githubFallback.activeRepo,
+    updatedAt: formatClock(),
+    languages: languages.length ? languages : githubFallback.languages,
+    recentRepos: sorted.slice(0, 4).map((repo) => ({
+      name: repo.name,
+      description: repo.description || '暂无描述',
+      language: repo.language || '其他',
+      stars: repo.stargazers_count || 0,
+      updated: formatRelativeTime(repo.pushed_at),
+      href: repo.html_url,
+    })),
+  };
+}
+
+function useGithubDashboard() {
+  const [data, setData] = useState(() => readGithubCache() || githubFallback);
+  const [refreshing, setRefreshing] = useState(false);
+  const [status, setStatus] = useState('idle');
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    setRefreshing(true);
+    setStatus('loading');
+    const stamp = Date.now();
+    Promise.all([
+      fetch(`https://api.github.com/users/Amanyous?stamp=${stamp}`, { cache: 'no-store' }),
+      fetch(`https://api.github.com/users/Amanyous/repos?sort=pushed&per_page=100&stamp=${stamp}`, { cache: 'no-store' }),
+    ])
+      .then(([userResponse, reposResponse]) => {
+        if (!userResponse.ok || !reposResponse.ok) throw new Error('GitHub request failed');
+        return Promise.all([userResponse.json(), reposResponse.json()]);
+      })
+      .then(([user, repos]) => Promise.all([
+        Promise.resolve(user),
+        Promise.resolve(repos),
+        Promise.all(repos.map((repo) => fetch(`${repo.languages_url}?stamp=${stamp}`, {
+          cache: 'no-store',
+        })
+          .then((response) => (response.ok ? response.json() : {}))
+          .catch(() => ({})))),
+      ]))
+      .then(([user, repos, languageMaps]) => {
+        if (!alive) return;
+        const next = buildGithubSummary(user, repos, languageMaps);
+        setData(next);
+        setStatus('success');
+        try {
+          window.sessionStorage.setItem(
+            GITHUB_CACHE_KEY,
+            JSON.stringify({ savedAt: Date.now(), data: next }),
+          );
+        } catch {
+          void 0;
+        }
+      })
+      .catch(() => {
+        if (!alive) return;
+        setData((current) => ({ ...current, updatedAt: formatClock() }));
+        setStatus('fallback');
+      })
+      .finally(() => {
+        if (alive) setRefreshing(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [refreshToken]);
+
+  return {
+    data,
+    refreshing,
+    status,
+    refresh: () => {
+      setData((current) => ({ ...current, updatedAt: formatClock() }));
+      setRefreshToken((value) => value + 1);
+    },
+  };
+}
+
+function GithubDashboard() {
+  const { data, refreshing, status, refresh } = useGithubDashboard();
+  const idleTime = useIdleTime(data.lastCommitAt);
+
+  return (
+    <section className="github-dashboard" aria-labelledby="github-dashboard-title">
+      <div className="github-dashboard__heading">
+        <div>
+          <Github size={20} strokeWidth={1.8} aria-hidden="true" />
+          <h2 id="github-dashboard-title">GitHub</h2>
+        </div>
+        <a href={site.github} target="_blank" rel="noreferrer">
+          查看主页
+          <ChevronRight size={16} strokeWidth={1.8} aria-hidden="true" />
+        </a>
+      </div>
+
+      <div className="github-summary-grid" aria-busy={refreshing}>
+        <LiquidSurface className="github-card github-card--idle" cornerRadius={24}>
+          <div className="github-card__heading">
+            <Fish size={17} strokeWidth={1.8} aria-hidden="true" />
+            <h3>摸鱼状态</h3>
+          </div>
+          <strong className="github-card__timer">{idleTime}</strong>
+          <div className="github-card__meta">
+            <span>最后提交 {data.lastCommit}</span>
+            <span>{data.activeRepo}</span>
+          </div>
+        </LiquidSurface>
+
+        <LiquidSurface className="github-card github-card--overview" cornerRadius={24}>
+          <div className="github-card__heading">
+            <FolderGit2 size={17} strokeWidth={1.8} aria-hidden="true" />
+            <h3>GitHub 概览</h3>
+          </div>
+          <div className="github-metrics">
+            <div>
+              <span>仓库</span>
+              <strong>{data.publicRepos}</strong>
+            </div>
+            <div>
+              <span>Star</span>
+              <strong>{data.stars}</strong>
+            </div>
+            <div>
+              <span>关注者</span>
+              <strong>{data.followers}</strong>
+            </div>
+          </div>
+          <small>数据来自 GitHub API</small>
+        </LiquidSurface>
+
+        <LiquidSurface className="github-card github-card--languages" cornerRadius={24}>
+          <div className="github-card__heading">
+            <Code2 size={17} strokeWidth={1.8} aria-hidden="true" />
+            <h3>常用语言</h3>
+          </div>
+          <div className="github-language-list">
+            {data.languages.map((language) => (
+              <div className="github-language" key={language.name}>
+                <span className="github-language__name">
+                  <i style={{ background: languageColors[language.name] || languageColors['其他'] }} />
+                  {language.name}
+                </span>
+                <span className="github-language__track" aria-hidden="true">
+                  <span style={{ width: `${Math.max(4, language.percent)}%` }} />
+                </span>
+                <strong>{language.percent}%</strong>
+              </div>
+            ))}
+          </div>
+        </LiquidSurface>
+      </div>
+
+      <LiquidSurface className="github-repos" cornerRadius={24}>
+        <div className="github-repos__heading">
+          <div>
+            <Activity size={18} strokeWidth={1.8} aria-hidden="true" />
+            <h3>仓库动态</h3>
+          </div>
+          <div>
+            <span>更新于 {data.updatedAt}</span>
+            <button
+              type="button"
+              data-status={status}
+              onClick={refresh}
+              disabled={refreshing}
+              aria-label="刷新 GitHub 数据"
+            >
+              <RefreshCw className={refreshing ? 'is-spinning' : ''} size={15} strokeWidth={1.8} aria-hidden="true" />
+              {refreshing ? '刷新中' : status === 'fallback' ? '使用快照' : '刷新'}
+            </button>
+          </div>
+        </div>
+        <div className="github-repo-list">
+          <div className="github-repo-list__head" aria-hidden="true">
+            <span>仓库</span>
+            <span>语言</span>
+            <span>Star</span>
+            <span>最近提交</span>
+            <span />
+          </div>
+          {data.recentRepos.map((repo) => (
+            <a className="github-repo-row" href={repo.href} key={repo.name} target="_blank" rel="noreferrer">
+              <span className="github-repo-row__repo">
+                <strong>{repo.name}</strong>
+                <small>{repo.description}</small>
+              </span>
+              <span className="github-repo-row__language">
+                <i style={{ background: languageColors[repo.language] || languageColors['其他'] }} />
+                {repo.language}
+              </span>
+              <span className="github-repo-row__stars">
+                <Star size={13} strokeWidth={1.8} aria-hidden="true" />
+                {repo.stars}
+              </span>
+              <span className="github-repo-row__updated">{repo.updated}</span>
+              <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+      </LiquidSurface>
+    </section>
+  );
+}
+
 function AboutPage() {
   return (
     <>
@@ -1365,21 +1711,43 @@ function AboutPage() {
           <img
             className="profile-card__avatar"
             src={site.avatar}
-            alt="沙丁鱼の小窝头像"
+            alt={aboutName}
             width="400"
             height="400"
             loading="lazy"
             decoding="async"
           />
           <div className="profile-card__body">
-            <h2>{site.name}</h2>
-            <p>设备清单、文章与更新记录，之后都会在这里慢慢补全。</p>
+            <h2>{aboutName}</h2>
+            <p className="profile-card__tagline">被猫娘人格狠狠占据了喵。</p>
+            <ul className="profile-card__tags" aria-label="个性标签">
+              {profileTags.map((tag) => <li key={tag}>{tag}</li>)}
+            </ul>
+          </div>
+          <div className="profile-card__actions">
+            {contactItems.map((item) => (
+              <a
+                className="profile-card__action"
+                href={item.href}
+                key={item.label}
+                target={item.target}
+                rel={item.target ? 'noreferrer' : undefined}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </a>
+            ))}
           </div>
         </LiquidSurface>
 
+        <GithubDashboard />
+
         <section className="about-updates" aria-labelledby="updates-title">
           <div className="about-updates__heading">
-            <h2 id="updates-title">更新日志</h2>
+            <div>
+              <BookOpen size={20} strokeWidth={1.8} aria-hidden="true" />
+              <h2 id="updates-title">更新日志</h2>
+            </div>
             <span>记录每次生长</span>
           </div>
           <LiquidSurface className="update-book-card" cornerRadius={28}>
@@ -2059,7 +2427,6 @@ export default function App() {
         </main>
 
         <footer className="site-footer container">
-          <GlassIcons className="footer-icons" items={contactItems} />
           <p>{site.name}</p>
         </footer>
       </div>
