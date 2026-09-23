@@ -73,7 +73,7 @@ const profileTags = ['抽象', '神经', '抖m', '4i'];
 
 const aboutName = '其名为沙丁鱼的猫.';
 
-const GITHUB_CACHE_KEY = 'sardine-den:github-summary:v2';
+const GITHUB_CACHE_KEY = 'sardine-den:github-summary:v3';
 const GITHUB_CACHE_TTL = 15 * 60 * 1000;
 
 const githubFallback = {
@@ -1460,9 +1460,13 @@ function readGithubCache() {
   return null;
 }
 
-function buildGithubSummary(user, repos, languageMaps = []) {
+function buildGithubSummary(user, repos, languageMaps = [], latestCommits = []) {
   const sorted = [...repos].sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
   const latest = sorted[0];
+  const pushedAt = latest?.pushed_at;
+  const commitAt = latestCommits[0]?.commit?.committer?.date;
+  const useCommitAt = commitAt && (!pushedAt || new Date(commitAt) > new Date(pushedAt));
+  const lastCommitAt = useCommitAt ? commitAt : pushedAt || githubFallback.lastCommitAt;
   const languageBytes = sorted.reduce((counts, repo, index) => {
     const repoLanguages = languageMaps[index] || (repo.language ? { [repo.language]: 1 } : {});
     Object.entries(repoLanguages).forEach(([language, bytes]) => {
@@ -1488,10 +1492,10 @@ function buildGithubSummary(user, repos, languageMaps = []) {
     publicRepos: user.public_repos ?? repos.length,
     stars: repos.reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0),
     followers: user.followers ?? 0,
-    idleTime: formatIdleTime(latest?.pushed_at),
-    lastCommit: formatRelativeTime(latest?.pushed_at),
-    lastCommitAt: latest?.pushed_at || githubFallback.lastCommitAt,
-    activeRepo: latest?.name || githubFallback.activeRepo,
+    idleTime: formatIdleTime(lastCommitAt),
+    lastCommit: formatRelativeTime(lastCommitAt),
+    lastCommitAt,
+    activeRepo: useCommitAt ? 'sardine-den' : latest?.name || githubFallback.activeRepo,
     updatedAt: formatClock(),
     languages: languages.length ? languages : githubFallback.languages,
     recentRepos: sorted.slice(0, 4).map((repo) => ({
@@ -1527,15 +1531,20 @@ function useGithubDashboard() {
       .then(([user, repos]) => Promise.all([
         Promise.resolve(user),
         Promise.resolve(repos),
+        fetch(`https://api.github.com/repos/Amanyous/sardine-den/commits?per_page=1&stamp=${stamp}`, {
+          cache: 'no-store',
+        })
+          .then((response) => (response.ok ? response.json() : []))
+          .catch(() => []),
         Promise.all(repos.map((repo) => fetch(`${repo.languages_url}?stamp=${stamp}`, {
           cache: 'no-store',
         })
           .then((response) => (response.ok ? response.json() : {}))
           .catch(() => ({})))),
       ]))
-      .then(([user, repos, languageMaps]) => {
+      .then(([user, repos, latestCommits, languageMaps]) => {
         if (!alive) return;
-        const next = buildGithubSummary(user, repos, languageMaps);
+        const next = buildGithubSummary(user, repos, languageMaps, latestCommits);
         setData(next);
         setStatus('success');
         try {
