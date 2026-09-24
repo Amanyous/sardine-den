@@ -16,6 +16,7 @@ import {
   Mail,
   Moon,
   RefreshCw,
+  Smartphone,
   Sparkles,
   Star,
   Sun,
@@ -1387,7 +1388,10 @@ function HomePage({ ready }) {
 
       <section className="section home-section" aria-labelledby="favorites-title">
         <div className="section-heading">
-          <h2 id="favorites-title">收藏与推荐</h2>
+          <div className="section-heading__title">
+            <Star size={20} strokeWidth={1.8} aria-hidden="true" />
+            <h2 id="favorites-title">收藏与推荐</h2>
+          </div>
         </div>
         {favorites.length ? (
           <div className="favorite-grid">
@@ -1839,10 +1843,13 @@ function ArticlesPage({ articleId, onNavigateArticle }) {
 }
 
 function DevicesPage() {
-  const categories = ['笔记本', '手机'];
+  const categories = [
+    { label: '笔记本', icon: Laptop },
+    { label: '手机', icon: Smartphone },
+  ];
   const grouped = categories.map((category) => ({
-    category,
-    items: devices.filter((device) => device.category === category),
+    ...category,
+    items: devices.filter((device) => device.category === category.label),
   }));
 
   return (
@@ -1857,11 +1864,15 @@ function DevicesPage() {
           <EmptyState icon={Laptop} title="设备清单待补充" lead="填好真实设备后，这里会按使用场景展示。" />
         ) : (
           <div className="device-list">
-            {grouped.map((group) =>
-              group.items.length ? (
-                <section className="device-group" key={group.category} aria-labelledby={`${group.category}-heading`}>
+            {grouped.map((group) => {
+              const Icon = group.icon;
+              return group.items.length ? (
+                <section className="device-group" key={group.label} aria-labelledby={`${group.label}-heading`}>
                   <div className="device-group__head">
-                    <h2 id={`${group.category}-heading`}>{group.category}</h2>
+                    <div className="device-group__title">
+                      <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+                      <h2 id={`${group.label}-heading`}>{group.label}</h2>
+                    </div>
                     <span>{group.items.length} 台</span>
                   </div>
                   <div className="device-group__grid">
@@ -1904,8 +1915,8 @@ function DevicesPage() {
                     ))}
                   </div>
                 </section>
-              ) : null,
-            )}
+              ) : null;
+            })}
           </div>
         )}
       </section>

@@ -717,6 +717,7 @@ p {
   position: relative;
   display: grid;
   grid-template-columns: 1fr;
+  grid-template-rows: minmax(auto, 1fr) auto;
   justify-items: center;
   align-items: center;
   min-height: calc(100dvh - 170px);
@@ -787,6 +788,19 @@ p {
 
 .section {
   padding-top: 64px;
+}
+
+.section-heading__title,
+.device-group__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-heading__title > svg,
+.device-group__title > svg {
+  flex: 0 0 auto;
+  color: var(--accent);
 }
 
 .section-heading h2 {
@@ -1125,7 +1139,7 @@ p {
 
 .github-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -1184,6 +1198,29 @@ p {
   line-height: 1.45;
 }
 
+.github-card--idle .github-card__meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.github-card--idle .liquid-surface__content {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.github-card--idle .github-card__timer {
+  align-self: center;
+}
+
+.github-card--idle .github-card__meta span {
+  min-width: 0;
+}
+
 .github-card--overview small {
   margin-top: auto;
   color: var(--dim);
@@ -1192,7 +1229,7 @@ p {
 
 .github-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
   gap: 8px;
   margin-block: auto;
 }
@@ -1209,10 +1246,8 @@ p {
 }
 
 .github-metrics span {
-  overflow: hidden;
   color: var(--muted);
   font-size: 10px;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1420,7 +1455,6 @@ p {
 }
 
 .github-repo-row__repo strong,
-.github-repo-row__repo small,
 .github-repo-row__language {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1436,6 +1470,8 @@ p {
 .github-repo-row__repo small {
   color: var(--muted);
   font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .github-repo-row__language,
@@ -2511,6 +2547,15 @@ p {
     font-size: 9px;
   }
 
+  .github-card--idle .github-card__meta {
+    gap: 8px;
+    font-size: 10px;
+  }
+
+  .github-card--idle .liquid-surface__content {
+    min-height: 136px;
+  }
+
   .github-card--overview small {
     font-size: 8px;
   }
@@ -2545,9 +2590,9 @@ p {
   }
 
   .github-language {
-    grid-template-columns: 48px minmax(0, 1fr) 26px;
+    grid-template-columns: minmax(64px, 0.8fr) minmax(40px, 1fr) 30px;
     gap: 4px;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .github-language__name {
@@ -2560,7 +2605,7 @@ p {
   }
 
   .github-language__track {
-    width: min(100%, 46px);
+    width: 100%;
     height: 3px;
   }
 
