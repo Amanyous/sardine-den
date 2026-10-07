@@ -1083,9 +1083,11 @@ p {
   .profile-card .liquid-surface__content {
     grid-template-columns: 104px minmax(0, 1fr);
   }
+}
 
+@media (min-width: 761px) and (max-width: 1023px) {
   .profile-card__actions {
-    grid-column: 1 / -1;
+    grid-column: 2;
     padding-left: 0;
     border-left: 0;
   }
@@ -2730,6 +2732,36 @@ p {
 
   .update-book__items li {
     font-size: 14px;
+  }
+}
+
+@media (max-width: 519px) {
+  .github-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 520px) and (max-width: 1023px) {
+  .github-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .github-card--languages {
+    grid-column: 1 / -1;
+  }
+
+  .github-card--languages .liquid-surface__content {
+    min-height: 0;
+  }
+
+  .github-card--languages .github-language-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 18px;
+    max-height: none;
+    padding-right: 0;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
